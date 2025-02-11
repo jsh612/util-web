@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Util Web
 
-## Getting Started
+Next.js로 구현된 유틸리티 웹 애플리케이션입니다.
 
-First, run the development server:
+## 주요 기능
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Figma 컴포넌트 생성
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   - Figma 파일에서 컴포넌트 정보를 가져와 프롬프트 생성
+   - PDF 및 이미지 파일 첨부 지원
+   - 생성된 프롬프트 파일 저장
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. 뉴스 크롤러
+   - 네이버 뉴스 크롤링 지원
+   - CNN 뉴스 크롤링 지원
+   - 제목, 본문, 작성자, 날짜 등 정보 추출
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 기술 스택
 
-## Learn More
+- Next.js 14
+- TypeScript
+- TailwindCSS
+- Axios
+- Cheerio
+- PDF Parse
 
-To learn more about Next.js, take a look at the following resources:
+## 시작하기
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. 저장소 클론
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   git clone [repository-url]
+   cd util-web
+   ```
 
-## Deploy on Vercel
+2. 의존성 설치
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   yarn install
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. 환경 변수 설정
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   `.env` 파일에 필요한 환경 변수를 설정하세요:
+
+   - `FIGMA_ACCESS_TOKEN`: Figma API 접근 토큰
+
+4. 개발 서버 실행
+
+   ```bash
+   yarn dev
+   ```
+
+5. 브라우저에서 `http://localhost:3000` 접속
+
+## API 엔드포인트
+
+### 컴포넌트 생성
+
+- POST `/api/v1/component`
+  - 멀티파트 폼 데이터로 요청
+  - 필수 필드: figmaFileId, nodeId, filePath, fileName
+  - 선택 필드: description, files
+
+### 뉴스 크롤링
+
+- GET `/api/v1/crawler?url=[news-url]`
+  - url: 네이버 뉴스 또는 CNN 뉴스 URL
+
+## 라이선스
+
+MIT
