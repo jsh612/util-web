@@ -79,8 +79,6 @@ export class ComponentService {
           throw new Error("첨부 파일은 최대 5개까지만 가능합니다.");
         }
 
-        console.log("처리할 파일 수:", createComponentDto.files.length);
-
         const filesDir = path.join(
           basePath,
           `${createComponentDto.fileName}_files`
@@ -101,12 +99,10 @@ export class ComponentService {
 
             if (file.type !== "application/pdf") {
               const filePath = path.join(filesDir, file.name);
-              console.log("파일 저장 시도:", filePath);
               const arrayBuffer = await file.arrayBuffer();
               const buffer = Buffer.from(arrayBuffer);
               await fs.writeFile(filePath, buffer);
               savedFiles.push(filePath);
-              console.log("파일 저장 성공:", filePath);
             }
           } catch (error) {
             console.error("파일 처리 중 오류:", file.name, error);
@@ -135,11 +131,10 @@ export class ComponentService {
     for (const file of files) {
       try {
         if (file.type === "application/pdf") {
-          console.log("PDF 처리 시작:", file.name);
           try {
             const formData = new FormData();
             formData.append("file", file);
-            console.log("PDF 처리 111");
+
             const response = await axios.post(
               `${API_BASE_URL}/api/v1/pdf`,
               formData,
@@ -150,14 +145,11 @@ export class ComponentService {
               }
             );
 
-            console.log("PDF 처리 222");
-
             if (response.status !== 200) {
               throw new Error("PDF 처리 중 오류가 발생했습니다.");
             }
 
             const data = response.data;
-            console.log("PDF 처리 결과:", data);
 
             texts.push(`[PDF: ${file.name}]\n${data.text}\n`);
           } catch (error) {

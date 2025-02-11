@@ -2,7 +2,6 @@ import { ComponentService } from "@/app/utils/figma-to-component";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  console.log("[API] GET /api/v1/figma - 테스트 요청 받음!");
   return NextResponse.json({ message: "GET 요청 테스트 성공!" });
 }
 
@@ -14,12 +13,6 @@ export async function POST(request: NextRequest) {
     const fileName = formData.get("fileName");
     const description = formData.get("description");
     const files = formData.getAll("files");
-
-    console.log("받은 파일 수:", files.length);
-    console.log(
-      "파일 정보:",
-      files.map((f) => ({ name: (f as File).name, size: (f as File).size }))
-    );
 
     if (!figmaUrl || typeof figmaUrl !== "string") {
       return NextResponse.json(
