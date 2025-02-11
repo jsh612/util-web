@@ -2,6 +2,7 @@ import { CrawlerService } from "@/app/utils/crawler";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
+  console.log("[API] GET /api/v1/crawler - 테스트 요청 받음!");
   try {
     const { searchParams } = new URL(request.url);
     const encodedUrl = searchParams.get("url");

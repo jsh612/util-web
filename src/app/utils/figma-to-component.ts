@@ -1,7 +1,4 @@
-import {
-  ComponentResponse,
-  CreateComponentDto,
-} from "@/types/figma-to-component.types";
+import { ComponentResponse, CreateComponentDto } from "@/types/api.types";
 import { Buffer } from "buffer";
 import * as fs from "fs/promises";
 import * as path from "path";

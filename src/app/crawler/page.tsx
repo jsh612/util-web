@@ -1,6 +1,6 @@
 "use client";
 
-import { CrawlResponse } from "@/types/figma-to-component.types";
+import { CrawlResponse } from "@/types/api.types";
 import axios from "axios";
 import Link from "next/link";
 import { useState } from "react";
@@ -18,7 +18,7 @@ export default function CrawlerPage() {
     setResult(null);
 
     try {
-      const response = await axios.get(`/api/v1/crawler`, {
+      const response = await axios.get("/api/v1/crawler", {
         params: {
           url: encodeURIComponent(url),
         },

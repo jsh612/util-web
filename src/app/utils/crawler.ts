@@ -1,4 +1,4 @@
-import { CrawlResponse } from "@/types/figma-to-component.types";
+import { CrawlResponse } from "@/types/api.types";
 import axios from "axios";
 import * as cheerio from "cheerio";
 

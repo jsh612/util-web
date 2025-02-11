@@ -1,6 +1,6 @@
 "use client";
 
-import { ComponentResponse } from "@/types/figma-to-component.types";
+import { ComponentResponse } from "@/types/api.types";
 import axios from "axios";
 import Link from "next/link";
 import { useState } from "react";
@@ -47,6 +47,7 @@ export default function ComponentPage() {
         newFormData.append("files", file);
       });
 
+      console.log("[CLIENT] figma 데이터:", newFormData);
       const response = await axios.post("/api/v1/figma", newFormData, {
         headers: {
           "Content-Type": "multipart/form-data",

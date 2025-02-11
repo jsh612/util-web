@@ -1,6 +1,11 @@
 import { ComponentService } from "@/app/utils/figma-to-component";
 import { NextRequest, NextResponse } from "next/server";
 
+export async function GET() {
+  console.log("[API] GET /api/v1/figma - 테스트 요청 받음!");
+  return NextResponse.json({ message: "GET 요청 테스트 성공!" });
+}
+
 export async function POST(request: NextRequest) {
   console.log("request", "요청 되었다!!!!");
   try {
