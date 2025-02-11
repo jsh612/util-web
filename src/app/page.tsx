@@ -9,7 +9,7 @@ export default function Home() {
         </h1>
         <div className="flex flex-col gap-6 w-full max-w-md">
           <Link
-            href="/figma-to-component"
+            href="/figma"
             className="group px-6 py-4 bg-slate-700/50 backdrop-blur-sm rounded-xl hover:bg-slate-700/70 transition-all duration-300 border border-slate-600/50 hover:border-slate-500/50 shadow-lg hover:shadow-xl"
           >
             <div className="flex items-center justify-between">

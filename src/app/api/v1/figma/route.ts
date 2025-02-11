@@ -7,7 +7,6 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("request", "요청 되었다!!!!");
   try {
     const formData = await request.formData();
     const figmaUrl = formData.get("figmaUrl");
@@ -15,6 +14,12 @@ export async function POST(request: NextRequest) {
     const fileName = formData.get("fileName");
     const description = formData.get("description");
     const files = formData.getAll("files");
+
+    console.log("받은 파일 수:", files.length);
+    console.log(
+      "파일 정보:",
+      files.map((f) => ({ name: (f as File).name, size: (f as File).size }))
+    );
 
     if (!figmaUrl || typeof figmaUrl !== "string") {
       return NextResponse.json(
@@ -37,13 +42,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 유효한 파일만 필터링
+    const validFiles = files.filter(
+      (file) => file instanceof File && file.size > 0
+    ) as File[];
+
+    if (validFiles.length > 5) {
+      return NextResponse.json(
+        { error: "첨부 파일은 최대 5개까지만 가능합니다." },
+        { status: 400 }
+      );
+    }
+
     const componentService = new ComponentService();
     const result = await componentService.createComponent({
       figmaUrl,
       filePath,
       fileName,
       description: description?.toString(),
-      files: files as File[],
+      files: validFiles,
     });
 
     return NextResponse.json(result);

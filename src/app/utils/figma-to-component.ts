@@ -1,9 +1,10 @@
 import { ComponentResponse, CreateComponentDto } from "@/types/api.types";
-import { Buffer } from "buffer";
+import axios from "axios";
 import * as fs from "fs/promises";
 import * as path from "path";
-import pdfParse from "pdf-parse";
 import { FigmaService } from "./figma";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 export class ComponentService {
   private figmaService: FigmaService;
@@ -69,7 +70,17 @@ export class ComponentService {
 
       // 첨부 파일 처리 (PDF 제외)
       const savedFiles: string[] = [];
-      if (createComponentDto.files?.length) {
+      if (
+        createComponentDto.files &&
+        Array.isArray(createComponentDto.files) &&
+        createComponentDto.files.length > 0
+      ) {
+        if (createComponentDto.files.length > 5) {
+          throw new Error("첨부 파일은 최대 5개까지만 가능합니다.");
+        }
+
+        console.log("처리할 파일 수:", createComponentDto.files.length);
+
         const filesDir = path.join(
           basePath,
           `${createComponentDto.fileName}_files`
@@ -77,14 +88,32 @@ export class ComponentService {
         await fs.mkdir(filesDir, { recursive: true });
 
         for (const file of createComponentDto.files) {
-          if (file.type !== "application/pdf") {
-            const filePath = path.join(filesDir, file.name);
-            const arrayBuffer = await file.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            await fs.writeFile(filePath, buffer);
-            savedFiles.push(filePath);
+          try {
+            if (!(file instanceof File)) {
+              console.log("유효하지 않은 파일 객체:", file);
+              continue;
+            }
+
+            if (file.size === 0) {
+              console.log("빈 파일 건너뛰기:", file.name);
+              continue;
+            }
+
+            if (file.type !== "application/pdf") {
+              const filePath = path.join(filesDir, file.name);
+              console.log("파일 저장 시도:", filePath);
+              const arrayBuffer = await file.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              await fs.writeFile(filePath, buffer);
+              savedFiles.push(filePath);
+              console.log("파일 저장 성공:", filePath);
+            }
+          } catch (error) {
+            console.error("파일 처리 중 오류:", file.name, error);
           }
         }
+      } else {
+        console.log("처리할 파일 없음");
       }
 
       return {
@@ -106,10 +135,38 @@ export class ComponentService {
     for (const file of files) {
       try {
         if (file.type === "application/pdf") {
-          const arrayBuffer = await file.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const data = await pdfParse(buffer);
-          texts.push(`[PDF: ${file.name}]\n${data.text}\n`);
+          console.log("PDF 처리 시작:", file.name);
+          try {
+            const formData = new FormData();
+            formData.append("file", file);
+            console.log("PDF 처리 111");
+            const response = await axios.post(
+              `${API_BASE_URL}/api/v1/pdf`,
+              formData,
+              {
+                headers: {
+                  "Content-Type": "multipart/form-data",
+                },
+              }
+            );
+
+            console.log("PDF 처리 222");
+
+            if (response.status !== 200) {
+              throw new Error("PDF 처리 중 오류가 발생했습니다.");
+            }
+
+            const data = response.data;
+            console.log("PDF 처리 결과:", data);
+
+            texts.push(`[PDF: ${file.name}]\n${data.text}\n`);
+          } catch (error) {
+            texts.push(
+              `[PDF: ${file.name}] PDF 처리 중 오류가 발생했습니다: ${
+                error instanceof Error ? error.message : "알 수 없는 오류"
+              }`
+            );
+          }
         } else if (file.type.startsWith("image/")) {
           texts.push(`[Image: ${file.name}]`);
         } else {
@@ -138,9 +195,9 @@ export class ComponentService {
 # 기본 사항:
 - Nextjs, TailwindCSS, Typescript, React 를 통해 컴포넌트 생성 필요
 - Text 컴포넌트는 '@/stories/common/Text' 경로에 있는 컴포넌트 참고해서 진행
-- Button 컴포넌트는 '@/stories/common/Button' 경로에 있는 컴포넌트 참고해서 진행 
+- Button 컴포넌트는 '@/stories/common/Button' 경로에 있는 컴포넌트 참고해서 진행
 - 그외 다른 부분도 기존 코드들 중 공통 컴포넌트 활용해서 진행
-- 디렉토리, 파일 규칙 등은 기존 코드 참고 
+- 디렉토리, 파일 규칙 등은 기존 코드 참고
 `;
 
     return `
@@ -151,6 +208,86 @@ ${JSON.stringify(figmaData, null, 2)}
 
 ${dto.description ? `# 컴포넌트 설명:\n${dto.description}\n` : ""}
 ${extractedText ? `# 컴포넌트 설명 관련 첨부 파일 내용:\n${extractedText}` : ""}
+    `.trim();
+  }
+
+  private resolvePath(filePath: string, fileName: string): string {
+    if (path.isAbsolute(filePath)) {
+      return path.join(filePath, fileName);
+    }
+
+    if (filePath.startsWith("../") || filePath.startsWith("..\\")) {
+      const projectRoot = process.cwd();
+      return path.resolve(projectRoot, filePath, fileName);
+    }
+
+    return path.join(process.cwd(), filePath, fileName);
+  }
+}
+
+export class ComponentService1 {
+  async createComponent(
+    createComponentDto: CreateComponentDto
+  ): Promise<ComponentResponse> {
+    try {
+      // Figma URL에서 파일 ID와 노드 ID 추출
+      const urlPattern = /figma\.com\/design\/([^/]+).*node-id=([^&]+)/;
+      const matches = createComponentDto.figmaUrl.match(urlPattern);
+
+      if (!matches) {
+        throw new Error(
+          "올바른 Figma 파일 URL이 아닙니다. (예: https://www.figma.com/design/xxxxx?node-id=xxxx)"
+        );
+      }
+
+      // 파일 저장 경로 생성
+      const basePath = this.resolvePath(createComponentDto.filePath, "");
+      const promptPath = path.join(
+        basePath,
+        `${createComponentDto.fileName}.txt`
+      );
+
+      // 디렉토리 생성
+      await fs.mkdir(basePath, { recursive: true });
+
+      // 프롬프트 텍스트 생성
+      const promptText = this.generatePromptText(createComponentDto);
+
+      // 프롬프트 파일 작성
+      await fs.writeFile(promptPath, promptText, "utf-8");
+
+      return {
+        message: "컴포넌트 프롬프트가 생성되었습니다.",
+        path: promptPath,
+        attachments: [],
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("컴포넌트 생성 중 알 수 없는 오류가 발생했습니다.");
+    }
+  }
+
+  private generatePromptText(dto: CreateComponentDto): string {
+    const defaultPrompt = `
+# 너는 최고의 프론트엔드 개발자야 다음 내용을 참고해서 컴포넌트를 생성해줘
+
+# 기본 사항:
+- Nextjs, TailwindCSS, Typescript, React 를 통해 컴포넌트 생성 필요
+- Text 컴포넌트는 '@/stories/common/Text' 경로에 있는 컴포넌트 참고해서 진행
+- Button 컴포넌트는 '@/stories/common/Button' 경로에 있는 컴포넌트 참고해서 진행
+- 그외 다른 부분도 기존 코드들 중 공통 컴포넌트 활용해서 진행
+- 디렉토리, 파일 규칙 등은 기존 코드 참고
+`;
+
+    return `
+${defaultPrompt}
+
+# Figma URL:
+${dto.figmaUrl}
+
+${dto.description ? `# 컴포넌트 설명:\n${dto.description}\n` : ""}
     `.trim();
   }
 
