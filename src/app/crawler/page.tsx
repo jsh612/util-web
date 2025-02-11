@@ -148,6 +148,17 @@ export default function CrawlerPage() {
                     {result.date}
                   </p>
                 )}
+                <p className="flex items-center">
+                  <span className="font-medium mr-2">URL:</span>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-teal-400 hover:text-teal-300 truncate"
+                  >
+                    {url}
+                  </a>
+                </p>
               </div>
               <div className="mt-6 prose prose-invert max-w-none">
                 {result.content.split("\n").map((paragraph, index) => (
