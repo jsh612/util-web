@@ -20,3 +20,21 @@ export interface CrawlResponse {
   publisher: string;
   author: string;
 }
+
+export interface ImageTextOptions {
+  text: string;
+  x?: number;
+  y?: number;
+  fontSize?: number;
+  color?: string;
+  fontFamily?: string;
+}
+
+export interface AddTextToImageRequest {
+  imageFile: File;
+  textOptions: ImageTextOptions;
+}
+
+export interface AddTextToImageResponse {
+  imageUrl: string;
+}

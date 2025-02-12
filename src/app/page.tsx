@@ -50,6 +50,27 @@ export default function Home() {
               </svg>
             </div>
           </Link>
+          <Link
+            href="/image-editor"
+            className="group px-6 py-4 bg-slate-700/50 backdrop-blur-sm rounded-xl hover:bg-slate-700/70 transition-all duration-300 border border-slate-600/50 hover:border-slate-500/50 shadow-lg hover:shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-medium">이미지 텍스트 에디터</span>
+              <svg
+                className="w-6 h-6 text-teal-400 group-hover:translate-x-1 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </div>
+          </Link>
         </div>
       </div>
     </div>
