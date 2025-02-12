@@ -3,7 +3,9 @@ export interface CreateComponentDto {
   filePath: string;
   fileName: string;
   description?: string;
+  defaultPrompt: string;
   files?: File[];
+  extractedText?: string;
 }
 
 export interface ComponentResponse {

@@ -8,11 +8,13 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const figmaUrl = formData.get("figmaUrl");
-    const filePath = formData.get("filePath");
-    const fileName = formData.get("fileName");
-    const description = formData.get("description");
-    const files = formData.getAll("files");
+    const figmaUrl = formData.get("figmaUrl") as string;
+    const filePath = formData.get("filePath") as string;
+    const fileName = formData.get("fileName") as string;
+    const description = formData.get("description") as string;
+    const defaultPrompt = formData.get("defaultPrompt") as string;
+    const files = formData.getAll("files") as File[];
+    const extractedText = formData.get("extractedText") as string;
 
     if (!figmaUrl || typeof figmaUrl !== "string") {
       return NextResponse.json(
@@ -35,6 +37,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!defaultPrompt || typeof defaultPrompt !== "string") {
+      return NextResponse.json(
+        { error: "기본 프롬프트가 필요합니다." },
+        { status: 400 }
+      );
+    }
+
     // 유효한 파일만 필터링
     const validFiles = files.filter(
       (file) => file instanceof File && file.size > 0
@@ -52,13 +61,15 @@ export async function POST(request: NextRequest) {
       figmaUrl,
       filePath,
       fileName,
-      description: description?.toString(),
+      description,
+      defaultPrompt,
       files: validFiles,
+      extractedText,
     });
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error creating component:", error);
+    console.error("Error:", error);
     return NextResponse.json(
       {
         error:

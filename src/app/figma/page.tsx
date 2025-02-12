@@ -10,6 +10,16 @@ export default function FigmaPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ComponentResponse | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const initialPrompt = `# 너는 최고의 프론트엔드 개발자야 다음 내용을 참고해서 컴포넌트를 생성해줘
+
+# 기본 사항:
+- Nextjs, TailwindCSS, Typescript, React 를 통해 컴포넌트 생성 필요
+- Text 컴포넌트는 '@/stories/common/Text' 경로에 있는 컴포넌트 참고해서 진행
+- Button 컴포넌트는 '@/stories/common/Button' 경로에 있는 컴포넌트 참고해서 진행
+- 그외 다른 부분도 기존 코드들 중 공통 컴포넌트 활용해서 진행
+- 디렉토리, 파일 규칙 등은 기존 코드 참고`;
+
+  const [defaultPrompt, setDefaultPrompt] = useState(initialPrompt);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -86,7 +96,6 @@ export default function FigmaPage() {
     const figmaUrl = formData.get("figmaUrl") as string;
 
     try {
-      // Figma URL에서 파일 ID와 노드 ID 추출
       const urlPattern = /figma\.com\/design\/([^/]+).*node-id=([^&]+)/;
       const matches = figmaUrl.match(urlPattern);
 
@@ -112,6 +121,7 @@ export default function FigmaPage() {
           formData.get("description") as string
         );
       }
+      newFormData.append("defaultPrompt", defaultPrompt);
 
       // 선택된 파일들 추가
       selectedFiles.forEach((file) => {
@@ -228,6 +238,46 @@ export default function FigmaPage() {
               rows={4}
               className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="prompt"
+              className="block text-sm font-medium text-slate-300 mb-2"
+            >
+              기본 프롬프트
+              <span className="ml-2 text-xs text-slate-400">(수정 가능)</span>
+            </label>
+            <div className="relative">
+              <textarea
+                id="prompt"
+                name="prompt"
+                value={defaultPrompt}
+                onChange={(e) => setDefaultPrompt(e.target.value)}
+                rows={10}
+                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 font-mono text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setDefaultPrompt(initialPrompt)}
+                className="absolute top-2 right-2 p-2 text-slate-400 hover:text-teal-400 transition-colors"
+                title="기본값으로 되돌리기"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div>
