@@ -1,11 +1,11 @@
 "use client";
 
+import MainLayout from "@/components/layout/MainLayout";
 import { ComponentResponse } from "@/types/api.types";
 import axios from "axios";
-import Link from "next/link";
 import { useState } from "react";
 
-export default function ComponentPage() {
+export default function FigmaPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ComponentResponse | null>(null);
@@ -145,30 +145,8 @@ export default function ComponentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link
-            href="/"
-            className="inline-flex items-center text-teal-400 hover:text-teal-300 transition-colors"
-          >
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            홈으로
-          </Link>
-        </div>
-
+    <MainLayout>
+      <div>
         <h1 className="text-4xl font-extrabold mb-12 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">
           Figma 컴포넌트 생성
         </h1>
@@ -331,39 +309,41 @@ export default function ComponentPage() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed font-medium shadow-lg hover:shadow-xl"
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                생성 중...
-              </div>
-            ) : (
-              "컴포넌트 생성"
-            )}
-          </button>
+          <div className="flex justify-center mt-6">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed font-medium shadow-lg hover:shadow-xl"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  생성 중...
+                </div>
+              ) : (
+                "컴포넌트 생성"
+              )}
+            </button>
+          </div>
         </form>
 
         {error && (
@@ -398,6 +378,6 @@ export default function ComponentPage() {
           </div>
         )}
       </div>
-    </div>
+    </MainLayout>
   );
 }
