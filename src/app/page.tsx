@@ -1,6 +1,7 @@
 "use client";
 
 import MainLayout from "@/components/layout/MainLayout";
+import { PAGE_ROUTES } from "@/constants/routes";
 import Link from "next/link";
 
 const tools = [
@@ -23,7 +24,7 @@ const tools = [
         />
       </svg>
     ),
-    path: "/instagram-post",
+    path: PAGE_ROUTES.INSTAGRAM_POST,
     features: [
       "인스타그램 비율 지원",
       "텍스트 크기/색상 조정",
@@ -49,7 +50,7 @@ const tools = [
         />
       </svg>
     ),
-    path: "/figma",
+    path: PAGE_ROUTES.FIGMA,
     features: ["Figma URL 지원", "PDF 텍스트 추출", "상세 프롬프트 생성"],
   },
   {
@@ -71,7 +72,7 @@ const tools = [
         />
       </svg>
     ),
-    path: "/crawler",
+    path: PAGE_ROUTES.CRAWLER,
     features: ["네이버 뉴스 지원", "CNN 기사 지원", "메타데이터 추출"],
   },
 ];

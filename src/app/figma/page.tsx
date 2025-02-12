@@ -1,6 +1,7 @@
 "use client";
 
 import MainLayout from "@/components/layout/MainLayout";
+import { API_ROUTES } from "@/constants/routes";
 import { ComponentResponse } from "@/types/api.types";
 import axios from "axios";
 import { useState } from "react";
@@ -49,7 +50,7 @@ export default function FigmaPage() {
             const formData = new FormData();
             formData.append("file", file);
             const response = await fetch(
-              window.location.origin + "/api/v1/pdf",
+              window.location.origin + API_ROUTES.PDF,
               {
                 method: "POST",
                 body: formData,
@@ -134,7 +135,7 @@ export default function FigmaPage() {
         newFormData.append("extractedText", extractedText);
       }
 
-      const response = await axios.post("/api/v1/figma", newFormData, {
+      const response = await axios.post(API_ROUTES.FIGMA, newFormData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

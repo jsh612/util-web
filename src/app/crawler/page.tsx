@@ -1,6 +1,7 @@
 "use client";
 
 import MainLayout from "@/components/layout/MainLayout";
+import { API_ROUTES } from "@/constants/routes";
 import { CrawlResponse } from "@/types/api.types";
 import axios from "axios";
 import { useState } from "react";
@@ -20,7 +21,7 @@ export default function CrawlerPage() {
     setResult(null);
 
     try {
-      const response = await axios.get("/api/v1/crawler", {
+      const response = await axios.get(API_ROUTES.CRAWLER, {
         params: {
           url: encodeURIComponent(inputUrl),
         },

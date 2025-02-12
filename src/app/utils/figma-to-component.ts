@@ -1,10 +1,9 @@
+import { API_BASE_URL, API_ROUTES } from "@/constants/routes";
 import { ComponentResponse, CreateComponentDto } from "@/types/api.types";
 import axios from "axios";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { FigmaService } from "./figma";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 export class ComponentService {
   private figmaService: FigmaService;
@@ -80,7 +79,7 @@ export class ComponentService {
             formData.append("file", file);
 
             const response = await axios.post(
-              `${API_BASE_URL}/api/v1/pdf`,
+              `${API_BASE_URL}${API_ROUTES.PDF}`,
               formData,
               {
                 headers: {
