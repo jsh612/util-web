@@ -19,12 +19,17 @@ export default function ImageEditor() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [results, setResults] = useState<TextResult[]>([]);
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [textOptions, setTextOptions] = useState<ImageTextOptions>({
+    title: "",
     text: "",
-    fontSize: 48,
-    color: "#ffffff",
+    titleFontSize: 64,
+    textFontSize: 48,
+    titleColor: "#ffffff",
+    textColor: "#ffffff",
     fontFamily: "Arial",
+    instagramRatio: "square",
   });
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,6 +38,9 @@ export default function ImageEditor() {
       setSelectedFile(file);
       // 새 이미지가 업로드되면 결과물 초기화
       setResults([]);
+      // 이미지 미리보기 URL 생성
+      const previewUrl = URL.createObjectURL(file);
+      setPreviewImage(previewUrl);
     }
   };
 
@@ -42,6 +50,11 @@ export default function ImageEditor() {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+    // 미리보기 이미지 제거
+    if (previewImage) {
+      URL.revokeObjectURL(previewImage);
+      setPreviewImage(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,8 +63,8 @@ export default function ImageEditor() {
       setError("이미지를 선택해주세요.");
       return;
     }
-    if (!textOptions.text.trim()) {
-      setError("텍스트를 입력해주세요.");
+    if (!textOptions.title?.trim() && !textOptions.text?.trim()) {
+      setError("제목 또는 본문을 입력해주세요.");
       return;
     }
 
@@ -84,7 +97,11 @@ export default function ImageEditor() {
       setResults((prev) => [...prev, newResult]);
 
       // 텍스트 입력 초기화
-      setTextOptions((prev) => ({ ...prev, text: "" }));
+      setTextOptions((prev) => ({
+        ...prev,
+        title: "",
+        text: "",
+      }));
     } catch (error) {
       console.error("Error:", error);
       setError(
@@ -223,11 +240,11 @@ export default function ImageEditor() {
                       />
                     </svg>
                     <span className="text-sm font-medium text-teal-400">
-                      이미지 추가하기
+                      {selectedFile ? "이미지 변경하기" : "이미지 추가하기"}
                     </span>
                   </label>
                   {selectedFile && (
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       <div className="flex items-center justify-between px-4 py-2 bg-slate-700/50 rounded-lg">
                         <span className="text-sm text-slate-300">
                           {selectedFile.name}
@@ -252,6 +269,17 @@ export default function ImageEditor() {
                           </svg>
                         </button>
                       </div>
+                      {previewImage && (
+                        <div className="relative w-full h-[300px] rounded-lg overflow-hidden">
+                          <Image
+                            src={previewImage}
+                            alt="선택된 이미지 미리보기"
+                            fill
+                            className="object-contain"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -259,31 +287,102 @@ export default function ImageEditor() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  텍스트 내용
+                  제목 (선택사항)
                 </label>
-                <input
-                  type="text"
+                <textarea
+                  value={textOptions.title}
+                  onChange={(e) =>
+                    setTextOptions({ ...textOptions, title: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
+                  placeholder="제목을 입력하세요 (선택사항)"
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  본문 텍스트 (선택사항)
+                </label>
+                <textarea
                   value={textOptions.text}
                   onChange={(e) =>
                     setTextOptions({ ...textOptions, text: e.target.value })
                   }
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400"
-                  placeholder="추가할 텍스트를 입력하세요"
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
+                  placeholder="본문 텍스트를 입력하세요 (선택사항)"
+                  rows={4}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-6">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    인스타그램 비율
+                  </label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTextOptions({
+                          ...textOptions,
+                          instagramRatio: "square",
+                        })
+                      }
+                      className={`px-4 py-2 rounded-lg border ${
+                        textOptions.instagramRatio === "square"
+                          ? "bg-teal-500 border-teal-400 text-white"
+                          : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                      }`}
+                    >
+                      정사각형 (1:1)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTextOptions({
+                          ...textOptions,
+                          instagramRatio: "portrait",
+                        })
+                      }
+                      className={`px-4 py-2 rounded-lg border ${
+                        textOptions.instagramRatio === "portrait"
+                          ? "bg-teal-500 border-teal-400 text-white"
+                          : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                      }`}
+                    >
+                      세로형 (4:5)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTextOptions({
+                          ...textOptions,
+                          instagramRatio: "landscape",
+                        })
+                      }
+                      className={`px-4 py-2 rounded-lg border ${
+                        textOptions.instagramRatio === "landscape"
+                          ? "bg-teal-500 border-teal-400 text-white"
+                          : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                      }`}
+                    >
+                      가로형 (1.91:1)
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    글자 크기
+                    제목 글자 크기
                   </label>
                   <input
                     type="number"
-                    value={textOptions.fontSize}
+                    value={textOptions.titleFontSize}
                     onChange={(e) =>
                       setTextOptions({
                         ...textOptions,
-                        fontSize: Number(e.target.value),
+                        titleFontSize: Number(e.target.value),
                       })
                     }
                     className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white"
@@ -292,13 +391,50 @@ export default function ImageEditor() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    글자 색상
+                    제목 글자 색상
                   </label>
                   <input
                     type="color"
-                    value={textOptions.color}
+                    value={textOptions.titleColor}
                     onChange={(e) =>
-                      setTextOptions({ ...textOptions, color: e.target.value })
+                      setTextOptions({
+                        ...textOptions,
+                        titleColor: e.target.value,
+                      })
+                    }
+                    className="w-full h-12 px-2 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    본문 글자 크기
+                  </label>
+                  <input
+                    type="number"
+                    value={textOptions.textFontSize}
+                    onChange={(e) =>
+                      setTextOptions({
+                        ...textOptions,
+                        textFontSize: Number(e.target.value),
+                      })
+                    }
+                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    본문 글자 색상
+                  </label>
+                  <input
+                    type="color"
+                    value={textOptions.textColor}
+                    onChange={(e) =>
+                      setTextOptions({
+                        ...textOptions,
+                        textColor: e.target.value,
+                      })
                     }
                     className="w-full h-12 px-2 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
@@ -308,7 +444,11 @@ export default function ImageEditor() {
 
             <button
               type="submit"
-              disabled={loading || !selectedFile}
+              disabled={
+                loading ||
+                !selectedFile ||
+                (!textOptions.title?.trim() && !textOptions.text?.trim())
+              }
               className="w-full px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed font-medium shadow-lg hover:shadow-xl"
             >
               {loading ? (
@@ -373,7 +513,7 @@ export default function ImageEditor() {
                           r="10"
                           stroke="currentColor"
                           strokeWidth="4"
-                        ></circle>
+                        />
                         <path
                           className="opacity-75"
                           fill="currentColor"

@@ -22,12 +22,14 @@ export interface CrawlResponse {
 }
 
 export interface ImageTextOptions {
+  title?: string;
   text: string;
-  x?: number;
-  y?: number;
-  fontSize?: number;
-  color?: string;
+  titleFontSize?: number;
+  textFontSize?: number;
+  titleColor?: string;
+  textColor?: string;
   fontFamily?: string;
+  instagramRatio?: "square" | "portrait" | "landscape";
 }
 
 export interface AddTextToImageRequest {
