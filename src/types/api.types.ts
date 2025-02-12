@@ -24,8 +24,13 @@ export interface CrawlResponse {
 }
 
 export interface ImageTextOptions {
+  textMode: "single" | "multiple";
   title?: string;
   text: string;
+  textArray?: Array<{
+    title: string;
+    content: string;
+  }>;
   titleFontSize?: number;
   textFontSize?: number;
   titleColor?: string;

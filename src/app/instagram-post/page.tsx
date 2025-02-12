@@ -173,14 +173,17 @@ export default function InstagramPost() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const jsonInputRef = useRef<HTMLTextAreaElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [results, setResults] = useState<TextResult[]>([]);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [textOptions, setTextOptions] = useState<ImageTextOptions>({
+    textMode: "single",
     title: "",
     text: "",
+    textArray: [],
     titleFontSize: 64,
     textFontSize: 48,
     titleColor: "#ffffff",
@@ -188,6 +191,102 @@ export default function InstagramPost() {
     fontFamily: "Arial",
     instagramRatio: "square",
   });
+
+  const [textInputs, setTextInputs] = useState<
+    Array<{ title: string; content: string }>
+  >([{ title: "", content: "" }]);
+
+  // 다중 텍스트 입력 모드 (UI/JSON)
+  const [multipleTextMode, setMultipleTextMode] = useState<"ui" | "json">("ui");
+  const [jsonInput, setJsonInput] = useState<string>(
+    '[\n  {\n    "title": "제목",\n    "content": "본문"\n  }\n]'
+  );
+
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
+  const addTextInput = () => {
+    setTextInputs([...textInputs, { title: "", content: "" }]);
+  };
+
+  const removeTextInput = (index: number) => {
+    setTextInputs(textInputs.filter((_, i) => i !== index));
+  };
+
+  const updateTextInput = (
+    index: number,
+    field: "title" | "content",
+    value: string
+  ) => {
+    const newInputs = [...textInputs];
+    newInputs[index][field] = value;
+    setTextInputs(newInputs);
+  };
+
+  const handleJsonInputChange = (value: string) => {
+    setJsonInput(value);
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        if (
+          !parsed.every(
+            (item) =>
+              typeof item === "object" &&
+              "title" in item &&
+              "content" in item &&
+              typeof item.title === "string" &&
+              typeof item.content === "string"
+          )
+        ) {
+          setJsonError(
+            "각 항목은 title(문자열)과 content(문자열)를 포함해야 합니다."
+          );
+          return;
+        }
+        // JSON이 유효한 경우 에러 메시지 초기화
+        setJsonError(null);
+      } else {
+        setJsonError("JSON은 배열 형식이어야 합니다.");
+      }
+    } catch (e) {
+      // JSON 파싱 에러 메시지를 사용자에게 보여줌
+      console.error("JSON 파싱 에러:", e);
+      setJsonError(
+        e instanceof Error
+          ? `JSON 형식 오류: ${e.message}`
+          : "JSON 형식이 올바르지 않습니다."
+      );
+    }
+  };
+
+  const validateAndParseJson = (): Array<{
+    title: string;
+    content: string;
+  }> | null => {
+    try {
+      const parsed = JSON.parse(jsonInput);
+      if (!Array.isArray(parsed)) {
+        throw new Error("JSON은 배열 형식이어야 합니다.");
+      }
+      if (
+        !parsed.every(
+          (item) =>
+            typeof item === "object" &&
+            "title" in item &&
+            "content" in item &&
+            typeof item.title === "string" &&
+            typeof item.content === "string"
+        )
+      ) {
+        throw new Error("각 항목은 title과 content를 포함해야 합니다.");
+      }
+      return parsed;
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "JSON 형식이 올바르지 않습니다."
+      );
+      return null;
+    }
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -217,55 +316,153 @@ export default function InstagramPost() {
       setError("이미지를 선택해주세요.");
       return;
     }
-    if (!textOptions.title?.trim() && !textOptions.text?.trim()) {
+
+    // 텍스트 모드에 따른 유효성 검사
+    if (
+      textOptions.textMode === "single" &&
+      !textOptions.title?.trim() &&
+      !textOptions.text?.trim()
+    ) {
       setError("제목 또는 본문을 입력해주세요.");
       return;
+    }
+
+    if (textOptions.textMode === "multiple") {
+      if (
+        multipleTextMode === "ui" &&
+        textInputs.every(
+          (input) => !input.title.trim() && !input.content.trim()
+        )
+      ) {
+        setError("최소 하나의 텍스트 세트에 제목 또는 본문을 입력해주세요.");
+        return;
+      }
+      if (multipleTextMode === "json") {
+        const parsedJson = validateAndParseJson();
+        if (!parsedJson) return;
+        if (
+          parsedJson.every((item) => !item.title.trim() && !item.content.trim())
+        ) {
+          setError("최소 하나의 텍스트 세트에 제목 또는 본문을 입력해주세요.");
+          return;
+        }
+      }
     }
 
     setLoading(true);
     setError(null);
     try {
-      const formData = new FormData();
-      formData.append("imageFile", fileInputRef.current.files[0]);
-      formData.append("textOptions", JSON.stringify(textOptions));
+      if (textOptions.textMode === "multiple") {
+        // 다중 텍스트 모드일 경우 각 텍스트 세트별로 이미지 생성
+        let finalTextInputs = textInputs;
 
-      const response = await fetch("/api/v1/image", {
-        method: "POST",
-        body: formData,
-      });
+        if (multipleTextMode === "json") {
+          const parsedJson = validateAndParseJson();
+          if (!parsedJson) {
+            setLoading(false);
+            return;
+          }
+          finalTextInputs = parsedJson;
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "이미지 처리 실패");
+        // 비어있지 않은 텍스트 세트만 필터링
+        const validTextInputs = finalTextInputs.filter(
+          (textInput) => textInput.title.trim() || textInput.content.trim()
+        );
+
+        for (const textInput of validTextInputs) {
+          const finalTextOptions: ImageTextOptions = {
+            textMode: "single" as const,
+            title: textInput.title,
+            text: textInput.content || " ",
+            titleFontSize: textOptions.titleFontSize,
+            textFontSize: textOptions.textFontSize,
+            titleColor: textOptions.titleColor,
+            textColor: textOptions.textColor,
+            fontFamily: textOptions.fontFamily,
+            instagramRatio: textOptions.instagramRatio,
+          };
+
+          const formData = new FormData();
+          formData.append("imageFile", fileInputRef.current.files[0]);
+          formData.append("textOptions", JSON.stringify(finalTextOptions));
+
+          const response = await fetch("/api/v1/image", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "이미지 처리 실패");
+          }
+
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+
+          const newResult: TextResult = {
+            id: Date.now().toString() + Math.random(),
+            preview: url,
+            textOptions: { ...finalTextOptions },
+          };
+          setResults((prev) => [...prev, newResult]);
+        }
+      } else {
+        // 단일 텍스트 모드
+        const finalTextOptions = {
+          ...textOptions,
+          textArray: undefined,
+        };
+
+        const formData = new FormData();
+        formData.append("imageFile", fileInputRef.current.files[0]);
+        formData.append("textOptions", JSON.stringify(finalTextOptions));
+
+        const response = await fetch("/api/v1/image", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "이미지 처리 실패");
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+
+        const newResult: TextResult = {
+          id: Date.now().toString(),
+          preview: url,
+          textOptions: { ...finalTextOptions },
+        };
+        setResults((prev) => [...prev, newResult]);
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-
-      const newResult: TextResult = {
-        id: Date.now().toString(),
-        preview: url,
-        textOptions: { ...textOptions },
-      };
-      setResults((prev) => [...prev, newResult]);
-
-      setTextOptions((prev) => ({
-        ...prev,
-        title: "",
-        text: "",
-      }));
+      // 텍스트 입력 초기화
+      if (textOptions.textMode === "single") {
+        setTextOptions((prev) => ({
+          ...prev,
+          title: "",
+          text: "",
+        }));
+      } else {
+        if (multipleTextMode === "ui") {
+          setTextInputs([{ title: "", content: "" }]);
+        } else {
+          setJsonInput(
+            '[\n  {\n    "title": "제목",\n    "content": "본문"\n  }\n]'
+          );
+        }
+      }
 
       // 이미지 로딩 완료 후 스크롤 실행
-      const img = document.createElement("img");
-      img.src = url;
-      img.onload = () => {
-        setTimeout(() => {
-          const resultSection = document.querySelector(".results-section");
-          if (resultSection) {
-            resultSection.scrollIntoView({ behavior: "smooth" });
-          }
-        }, 100);
-      };
+      setTimeout(() => {
+        const resultSection = document.querySelector(".results-section");
+        if (resultSection) {
+          resultSection.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
     } catch (error) {
       console.error("Error:", error);
       setError(
@@ -456,33 +653,256 @@ export default function InstagramPost() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    제목 (선택사항)
+                    텍스트 입력 모드
                   </label>
-                  <textarea
-                    value={textOptions.title}
-                    onChange={(e) =>
-                      setTextOptions({ ...textOptions, title: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
-                    placeholder="제목을 입력하세요 (선택사항)"
-                    rows={2}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTextOptions({ ...textOptions, textMode: "single" })
+                      }
+                      className={`px-4 py-2 rounded-lg border ${
+                        textOptions.textMode === "single"
+                          ? "bg-teal-500 border-teal-400 text-white"
+                          : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                      }`}
+                    >
+                      단일 텍스트
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTextOptions({ ...textOptions, textMode: "multiple" })
+                      }
+                      className={`px-4 py-2 rounded-lg border ${
+                        textOptions.textMode === "multiple"
+                          ? "bg-teal-500 border-teal-400 text-white"
+                          : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                      }`}
+                    >
+                      다중 텍스트
+                    </button>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    본문 텍스트 (선택사항)
-                  </label>
-                  <textarea
-                    value={textOptions.text}
-                    onChange={(e) =>
-                      setTextOptions({ ...textOptions, text: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
-                    placeholder="본문 텍스트를 입력하세요 (선택사항)"
-                    rows={4}
-                  />
-                </div>
+                {textOptions.textMode === "single" ? (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        제목 (선택사항)
+                      </label>
+                      <textarea
+                        value={textOptions.title}
+                        onChange={(e) =>
+                          setTextOptions({
+                            ...textOptions,
+                            title: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
+                        placeholder="제목을 입력하세요 (선택사항)"
+                        rows={2}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        본문 텍스트 (선택사항)
+                      </label>
+                      <textarea
+                        value={textOptions.text}
+                        onChange={(e) =>
+                          setTextOptions({
+                            ...textOptions,
+                            text: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
+                        placeholder="본문 텍스트를 입력하세요 (선택사항)"
+                        rows={4}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-medium text-slate-300">
+                        입력 방식
+                      </label>
+                      <div className="flex space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setMultipleTextMode("ui")}
+                          className={`px-3 py-1.5 rounded-lg border ${
+                            multipleTextMode === "ui"
+                              ? "bg-teal-500 border-teal-400 text-white"
+                              : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                          }`}
+                        >
+                          UI 입력
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMultipleTextMode("json")}
+                          className={`px-3 py-1.5 rounded-lg border ${
+                            multipleTextMode === "json"
+                              ? "bg-teal-500 border-teal-400 text-white"
+                              : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                          }`}
+                        >
+                          JSON 입력
+                        </button>
+                      </div>
+                    </div>
+
+                    {multipleTextMode === "ui" ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <label className="block text-sm font-medium text-slate-300">
+                            텍스트 세트
+                          </label>
+                          <button
+                            type="button"
+                            onClick={addTextInput}
+                            className="inline-flex items-center px-3 py-1.5 bg-teal-500/20 text-teal-400 rounded-lg hover:bg-teal-500/30 transition-colors"
+                          >
+                            <svg
+                              className="w-4 h-4 mr-1"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 4v16m8-8H4"
+                              />
+                            </svg>
+                            텍스트 세트 추가
+                          </button>
+                        </div>
+                        {textInputs.map((input, index) => (
+                          <div
+                            key={index}
+                            className="p-4 bg-slate-800/50 rounded-xl space-y-4"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-teal-400">
+                                텍스트 세트 #{index + 1}
+                              </span>
+                              {textInputs.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeTextInput(index)}
+                                  className="text-red-400 hover:text-red-300"
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-300 mb-2">
+                                제목
+                              </label>
+                              <textarea
+                                value={input.title}
+                                onChange={(e) =>
+                                  updateTextInput(
+                                    index,
+                                    "title",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
+                                placeholder="제목을 입력하세요"
+                                rows={2}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-300 mb-2">
+                                본문
+                              </label>
+                              <textarea
+                                value={input.content}
+                                onChange={(e) =>
+                                  updateTextInput(
+                                    index,
+                                    "content",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
+                                placeholder="본문을 입력하세요"
+                                rows={4}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-slate-300">
+                          JSON 입력
+                          <span className="ml-2 text-xs text-slate-400">
+                            (title과 content를 포함한 배열)
+                          </span>
+                        </label>
+                        <div className="relative">
+                          <textarea
+                            ref={jsonInputRef}
+                            value={jsonInput}
+                            onChange={(e) => {
+                              handleJsonInputChange(e.target.value);
+                              const textarea = e.target;
+                              textarea.style.height = "auto";
+                              textarea.style.height = `${Math.min(
+                                textarea.scrollHeight,
+                                500
+                              )}px`;
+                            }}
+                            style={{
+                              height: "auto",
+                              minHeight: "200px",
+                              maxHeight: "500px",
+                            }}
+                            className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl focus:ring-2 focus:ring-teal-500 text-white font-mono text-sm leading-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50 hover:scrollbar-thumb-slate-500 ${
+                              jsonError
+                                ? "border-red-500/50"
+                                : "border-slate-600/50"
+                            }`}
+                            placeholder='[
+  {
+    "title": "제목1",
+    "content": "본문1"
+  },
+  {
+    "title": "제목2",
+    "content": "본문2"
+  }
+]'
+                          />
+                          {jsonError && (
+                            <p className="mt-2 text-sm text-red-400">
+                              {jsonError}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="col-span-2">
@@ -562,17 +982,49 @@ export default function InstagramPost() {
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       제목 글자 색상
                     </label>
-                    <input
-                      type="color"
-                      value={textOptions.titleColor}
-                      onChange={(e) =>
-                        setTextOptions({
-                          ...textOptions,
-                          titleColor: e.target.value,
-                        })
-                      }
-                      className="w-full h-12 px-2 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                    />
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          "#FFFFFF",
+                          "#000000",
+                          "#333333",
+                          "#666666",
+                          "#2C3E50",
+                          "#E74C3C",
+                          "#3498DB",
+                          "#27AE60",
+                        ].map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() =>
+                              setTextOptions({
+                                ...textOptions,
+                                titleColor: color,
+                              })
+                            }
+                            className={`w-12 h-12 rounded-lg transition-all duration-200 ${
+                              textOptions.titleColor === color
+                                ? "ring-2 ring-teal-400 scale-110"
+                                : "ring-1 ring-slate-600/50 hover:scale-105"
+                            }`}
+                            style={{ backgroundColor: color }}
+                            title={color}
+                          />
+                        ))}
+                      </div>
+                      <input
+                        type="color"
+                        value={textOptions.titleColor}
+                        onChange={(e) =>
+                          setTextOptions({
+                            ...textOptions,
+                            titleColor: e.target.value,
+                          })
+                        }
+                        className="w-full h-12 px-2 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -596,17 +1048,49 @@ export default function InstagramPost() {
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       본문 글자 색상
                     </label>
-                    <input
-                      type="color"
-                      value={textOptions.textColor}
-                      onChange={(e) =>
-                        setTextOptions({
-                          ...textOptions,
-                          textColor: e.target.value,
-                        })
-                      }
-                      className="w-full h-12 px-2 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                    />
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          "#FFFFFF",
+                          "#000000",
+                          "#333333",
+                          "#666666",
+                          "#2C3E50",
+                          "#E74C3C",
+                          "#3498DB",
+                          "#27AE60",
+                        ].map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() =>
+                              setTextOptions({
+                                ...textOptions,
+                                textColor: color,
+                              })
+                            }
+                            className={`w-12 h-12 rounded-lg transition-all duration-200 ${
+                              textOptions.textColor === color
+                                ? "ring-2 ring-teal-400 scale-110"
+                                : "ring-1 ring-slate-600/50 hover:scale-105"
+                            }`}
+                            style={{ backgroundColor: color }}
+                            title={color}
+                          />
+                        ))}
+                      </div>
+                      <input
+                        type="color"
+                        value={textOptions.textColor}
+                        onChange={(e) =>
+                          setTextOptions({
+                            ...textOptions,
+                            textColor: e.target.value,
+                          })
+                        }
+                        className="w-full h-12 px-2 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -617,7 +1101,14 @@ export default function InstagramPost() {
                   disabled={
                     loading ||
                     !selectedFile ||
-                    (!textOptions.title?.trim() && !textOptions.text?.trim())
+                    (textOptions.textMode === "single"
+                      ? !textOptions.title?.trim() && !textOptions.text?.trim()
+                      : multipleTextMode === "ui"
+                      ? textInputs.every(
+                          (input) =>
+                            !input.title.trim() && !input.content.trim()
+                        )
+                      : !jsonInput.trim())
                   }
                   className="w-full px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed font-medium shadow-lg hover:shadow-xl"
                 >
