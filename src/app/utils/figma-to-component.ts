@@ -1,6 +1,4 @@
-import { API_BASE_URL, API_ROUTES } from "@/constants/routes";
 import { ComponentResponse, CreateComponentDto } from "@/types/api.types";
-import axios from "axios";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { FigmaService } from "./figma";
@@ -55,10 +53,52 @@ export class ComponentService {
       // 프롬프트 파일 작성
       await fs.writeFile(promptPath, promptText, "utf-8");
 
+      // 첨부 파일 처리
+      const savedFiles: string[] = [];
+      if (
+        createComponentDto.files &&
+        Array.isArray(createComponentDto.files) &&
+        createComponentDto.files.length > 0
+      ) {
+        if (createComponentDto.files.length > 5) {
+          throw new Error("첨부 파일은 최대 5개까지만 가능합니다.");
+        }
+
+        const filesDir = path.join(
+          basePath,
+          `${createComponentDto.fileName}_files`
+        );
+        await fs.mkdir(filesDir, { recursive: true });
+
+        for (const file of createComponentDto.files) {
+          try {
+            if (!(file instanceof File)) {
+              console.log("유효하지 않은 파일 객체:", file);
+              continue;
+            }
+
+            if (file.size === 0) {
+              console.log("빈 파일 건너뛰기:", file.name);
+              continue;
+            }
+
+            if (file.type !== "application/pdf") {
+              const filePath = path.join(filesDir, file.name);
+              const arrayBuffer = await file.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              await fs.writeFile(filePath, buffer);
+              savedFiles.push(filePath);
+            }
+          } catch (error) {
+            console.error("파일 처리 중 오류:", file.name, error);
+          }
+        }
+      }
+
       return {
         message: "컴포넌트 프롬프트가 생성되었습니다.",
         path: promptPath,
-        attachments: [],
+        attachments: savedFiles,
       };
     } catch (error) {
       if (error instanceof Error) {
@@ -66,57 +106,6 @@ export class ComponentService {
       }
       throw new Error("컴포넌트 생성 중 알 수 없는 오류가 발생했습니다.");
     }
-  }
-
-  private async extractTextFromFiles(files: File[]): Promise<string> {
-    const texts: string[] = [];
-
-    for (const file of files) {
-      try {
-        if (file.type === "application/pdf") {
-          try {
-            const formData = new FormData();
-            formData.append("file", file);
-
-            const response = await axios.post(
-              `${API_BASE_URL}${API_ROUTES.PDF}`,
-              formData,
-              {
-                headers: {
-                  "Content-Type": "multipart/form-data",
-                },
-              }
-            );
-
-            if (response.status !== 200) {
-              throw new Error("PDF 처리 중 오류가 발생했습니다.");
-            }
-
-            const data = response.data;
-
-            texts.push(`[PDF: ${file.name}]\n${data.text}\n`);
-          } catch (error) {
-            texts.push(
-              `[PDF: ${file.name}] PDF 처리 중 오류가 발생했습니다: ${
-                error instanceof Error ? error.message : "알 수 없는 오류"
-              }`
-            );
-          }
-        } else if (file.type.startsWith("image/")) {
-          texts.push(`[Image: ${file.name}]`);
-        } else {
-          texts.push(
-            `[Unsupported: ${file.name}] File type not supported: ${file.type}`
-          );
-        }
-      } catch (error) {
-        if (error instanceof Error) {
-          texts.push(`[Error processing ${file.name}]: ${error.message}`);
-        }
-      }
-    }
-
-    return texts.join("\n\n");
   }
 
   private generatePromptText(dto: CreateComponentDto): string {
