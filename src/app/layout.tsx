@@ -6,7 +6,15 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Util Web",
-  description: "Utility Web Application",
+  description: "웹 기반 유틸리티 도구 모음",
+  icons: {
+    icon: [
+      {
+        url: "/utilweb-favicon.svg",
+        type: "image/svg+xml",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
