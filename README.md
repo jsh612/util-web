@@ -1,12 +1,14 @@
 # Util-Web
 
-Next.js 기반의 유틸리티 웹 애플리케이션입니다. Figma 디자인 추출, 웹 크롤링, PDF 파싱 등 다양한 유틸리티 기능을 제공합니다.
+Next.js 기반의 유틸리티 웹 애플리케이션입니다. Figma 디자인 추출, 웹 크롤링, PDF 파싱, 이미지 편집 등 다양한 유틸리티 기능을 제공합니다.
 
 ## 주요 기능
 
 - **Figma 컴포넌트 추출**: Figma API를 활용하여 디자인 컴포넌트를 추출하고 프롬프트로 변환
 - **웹 크롤링**: 지정된 웹사이트의 데이터를 수집하고 분석
 - **PDF 파싱**: PDF 문서의 텍스트 내용을 추출하고 처리
+- **이미지 편집**: 이미지 리사이징, 포맷 변환 등 기본적인 이미지 편집 기능 제공
+- **인스타그램 포스트 생성**: 템플릿 기반의 인스타그램 포스트 이미지 생성
 
 ## 기술 스택
 
@@ -17,6 +19,8 @@ Next.js 기반의 유틸리티 웹 애플리케이션입니다. Figma 디자인 
   - axios: HTTP 클라이언트
   - cheerio: 웹 크롤링
   - pdf-parse: PDF 파싱
+  - sharp: 이미지 처리
+  - react-dnd: 드래그 앤 드롭 기능
   - class-validator: 데이터 유효성 검증
 
 ## 시작하기
@@ -80,13 +84,17 @@ yarn start
 ```
 src/
 ├── app/
-│   ├── api/         # API 라우트
-│   ├── utils/       # 유틸리티 함수
-│   ├── crawler/     # 크롤러 페이지
-│   ├── figma/       # Figma 관련 페이지
-│   └── pdf/         # PDF 관련 페이지
-├── types/           # TypeScript 타입 정의
-└── components/      # 공통 컴포넌트
+│   ├── api/                # API 라우트
+│   │   └── v1/
+│   │       ├── crawler/    # 크롤러 API
+│   │       ├── figma/      # Figma API
+│   │       └── pdf/        # PDF API
+│   ├── utils/             # 유틸리티 함수
+│   ├── crawler/           # 크롤러 페이지
+│   ├── figma/             # Figma 관련 페이지
+│   ├── image-editor/      # 이미지 편집 페이지
+│   └── instagram-post/    # 인스타그램 포스트 생성 페이지
+└── types/                 # TypeScript 타입 정의
 ```
 
 ## 라이선스
