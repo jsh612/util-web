@@ -7,6 +7,7 @@ import { useState } from "react";
 
 export default function CrawlerPage() {
   const [url, setUrl] = useState("");
+  const [inputUrl, setInputUrl] = useState("");
   const [result, setResult] = useState<CrawlResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -20,11 +21,12 @@ export default function CrawlerPage() {
     try {
       const response = await axios.get("/api/v1/crawler", {
         params: {
-          url: encodeURIComponent(url),
+          url: encodeURIComponent(inputUrl),
         },
       });
 
       setResult(response.data);
+      setUrl(inputUrl);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         setError(error.response?.data?.error || error.message);
@@ -56,8 +58,8 @@ export default function CrawlerPage() {
             <input
               type="url"
               id="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              value={inputUrl}
+              onChange={(e) => setInputUrl(e.target.value)}
               required
               className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400"
               placeholder="https://news.naver.com/..."
