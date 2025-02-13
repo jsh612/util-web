@@ -107,7 +107,7 @@ export default function DraggableImageCard({
             #{index + 1}
           </span>
           <span className="text-lg font-medium text-slate-300">
-            {result.textOptions.text}
+            {result.textOptions.title || ""}
           </span>
         </div>
         <div className="flex items-center space-x-2">
@@ -154,7 +154,7 @@ export default function DraggableImageCard({
       <div className="rounded-lg overflow-hidden relative h-[300px] w-full">
         <Image
           src={result.preview}
-          alt={result.textOptions.text}
+          alt={result.textOptions.content}
           fill
           className={`object-contain transition-opacity duration-200 ${
             isDragging ? "opacity-40" : "opacity-100"

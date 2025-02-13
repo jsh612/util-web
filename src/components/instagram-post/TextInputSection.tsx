@@ -79,7 +79,7 @@ export default function TextInputSection({
   };
 
   return (
-    <div>
+    <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg space-y-6">
       <div>
         <label className="block text-sm font-medium text-slate-300 mb-2">
           텍스트 입력 모드
@@ -138,11 +138,11 @@ export default function TextInputSection({
               본문 텍스트 (선택사항)
             </label>
             <textarea
-              value={textOptions.text}
+              value={textOptions.content}
               onChange={(e) =>
                 setTextOptions({
                   ...textOptions,
-                  text: e.target.value,
+                  content: e.target.value,
                 })
               }
               className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"

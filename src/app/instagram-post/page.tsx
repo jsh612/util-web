@@ -1,30 +1,65 @@
 "use client";
 
+import ImageUploadSection from "@/components/instagram-post/ImageUploadSection";
+import {
+  ColorModal,
+  DefaultImageModal,
+} from "@/components/instagram-post/Modals";
 import ResultsSection from "@/components/instagram-post/ResultsSection";
 import StyleOptionsSection from "@/components/instagram-post/StyleOptionsSection";
+import SubmitButton from "@/components/instagram-post/SubmitButton";
 import TextInputSection from "@/components/instagram-post/TextInputSection";
 import MainLayout from "@/components/layout/MainLayout";
+import { API_ROUTES } from "@/constants/routes";
 import { ImageTextOptions } from "@/types/api.types";
 import { TextResult } from "@/types/instagram-post.types";
 import JSZip from "jszip";
-import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+
+const BACKGROUND_COLORS = [
+  // 밝은 색상
+  "#FFFFFF", // 흰색
+  "#F5F5F5", // 밝은 회색
+  "#ECE5C7", // 크림색
+  "#FFEEAD", // 베이지색
+
+  // 선명한 색상
+  "#FF6B6B", // 빨간색
+  "#4ECDC4", // 청록색
+  "#45B7D1", // 하늘색
+  "#96CEB4", // 민트색
+
+  // 중간 톤
+  "#576F72", // 차분한 그레이
+  "#395B64", // 깊은 청록색
+
+  // 어두운 색상
+  "#1B264F", // 딥 네이비
+  "#092635", // 미드나잇 블루
+  "#000000", // 검정색
+] as const;
 
 export default function InstagramPost() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedBackgroundColor, setSelectedBackgroundColor] = useState<
+    string | null
+  >(null);
   const [results, setResults] = useState<TextResult[]>([]);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isDefaultImageModalOpen, setIsDefaultImageModalOpen] = useState(false);
+  const [hasDefaultImage, setHasDefaultImage] = useState(false);
+  const [isColorModalOpen, setIsColorModalOpen] = useState(false);
 
   const [textOptions, setTextOptions] = useState<ImageTextOptions>({
     textMode: "single",
     title: "",
-    text: "",
+    content: "",
     textArray: [],
     titleFontSize: 64,
     textFontSize: 48,
@@ -85,6 +120,102 @@ export default function InstagramPost() {
     }
   };
 
+  const checkDefaultImage = async () => {
+    try {
+      const response = await fetch(API_ROUTES.INSTAGRAM_DEFAULT);
+      setHasDefaultImage(response.ok);
+    } catch {
+      setHasDefaultImage(false);
+    }
+  };
+
+  useEffect(() => {
+    checkDefaultImage();
+  }, []);
+
+  const handleDefaultImageSelect = async () => {
+    try {
+      const response = await fetch(API_ROUTES.INSTAGRAM_DEFAULT);
+      if (!response.ok) {
+        if (response.status === 404) {
+          setIsDefaultImageModalOpen(true);
+          return;
+        }
+        throw new Error("기본 이미지를 불러오는데 실패했습니다.");
+      }
+      const blob = await response.blob();
+      const file = new File([blob], "instagram-default.png", {
+        type: "image/png",
+      });
+      setSelectedFile(file);
+      setResults([]);
+      const previewUrl = URL.createObjectURL(blob);
+      setPreviewImage(previewUrl);
+      setHasDefaultImage(true);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "기본 이미지를 불러오는데 실패했습니다."
+      );
+    }
+  };
+
+  const handleDefaultImageDelete = async () => {
+    try {
+      const response = await fetch(API_ROUTES.INSTAGRAM_DEFAULT, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("기본 이미지 삭제에 실패했습니다.");
+      }
+      setHasDefaultImage(false);
+      if (selectedFile?.name === "instagram-default.png") {
+        setSelectedFile(null);
+        if (previewImage) {
+          URL.revokeObjectURL(previewImage);
+          setPreviewImage(null);
+        }
+        setResults([]);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+      setError(null);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "기본 이미지 삭제에 실패했습니다."
+      );
+    }
+  };
+
+  const handleDefaultImageChange = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const response = await fetch(API_ROUTES.INSTAGRAM_DEFAULT, {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error("기본 이미지 변경에 실패했습니다.");
+      }
+      await checkDefaultImage();
+      if (selectedFile?.name === "instagram-default.png") {
+        await handleDefaultImageSelect();
+      }
+      setError(null);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "기본 이미지 변경에 실패했습니다."
+      );
+    }
+  };
+
   const handleRemoveFile = () => {
     setSelectedFile(null);
     setResults([]);
@@ -97,17 +228,115 @@ export default function InstagramPost() {
     }
   };
 
+  const handleColorSelect = (color: string) => {
+    setSelectedBackgroundColor(color);
+    setSelectedFile(null);
+    setResults([]);
+    if (previewImage) {
+      URL.revokeObjectURL(previewImage);
+      setPreviewImage(null);
+    }
+    setIsColorModalOpen(false);
+  };
+
+  const createBackgroundImageFile = async (color: string) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1080;
+    const ctx = canvas.getContext("2d");
+
+    if (ctx) {
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+        }, "image/png");
+      });
+
+      return new File([blob], "background.png", { type: "image/png" });
+    }
+    throw new Error("배경 이미지 생성에 실패했습니다.");
+  };
+
+  const adjustTextOptions = (options: ImageTextOptions): ImageTextOptions => {
+    const adjusted = { ...options };
+
+    // 이미지 크기 기준 설정 (1080px 기준, 좌우 여백 90px)
+    const maxWidth = 900;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) return adjusted;
+
+    // 제목 텍스트 줄바꿈 처리
+    if (adjusted.title) {
+      ctx.font = `${adjusted.titleFontSize}px ${adjusted.fontFamily}`;
+      const lines = [];
+      let currentLine = "";
+      let currentWidth = 0;
+
+      for (let i = 0; i < adjusted.title.length; i++) {
+        const char = adjusted.title[i];
+        const charWidth = ctx.measureText(char).width;
+
+        if (currentWidth + charWidth > maxWidth) {
+          lines.push(currentLine);
+          currentLine = char;
+          currentWidth = charWidth;
+        } else {
+          currentLine += char;
+          currentWidth += charWidth;
+        }
+      }
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      adjusted.title = lines.join("\n");
+    }
+
+    // 본문 텍스트 줄바꿈 처리
+    if (adjusted.content) {
+      ctx.font = `${adjusted.textFontSize}px ${adjusted.fontFamily}`;
+      const lines = [];
+      let currentLine = "";
+      let currentWidth = 0;
+
+      for (let i = 0; i < adjusted.content.length; i++) {
+        const char = adjusted.content[i];
+        const charWidth = ctx.measureText(char).width;
+
+        if (currentWidth + charWidth > maxWidth) {
+          lines.push(currentLine);
+          currentLine = char;
+          currentWidth = charWidth;
+        } else {
+          currentLine += char;
+          currentWidth += charWidth;
+        }
+      }
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      adjusted.content = lines.join("\n");
+    }
+
+    return adjusted;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fileInputRef.current?.files?.[0]) {
-      setError("이미지를 선택해주세요.");
+
+    if (!selectedFile && !selectedBackgroundColor) {
+      setError("이미지를 선택하거나 배경색을 선택해주세요.");
       return;
     }
 
     if (
       textOptions.textMode === "single" &&
       !textOptions.title?.trim() &&
-      !textOptions.text?.trim()
+      !textOptions.content?.trim()
     ) {
       setError("제목 또는 본문을 입력해주세요.");
       return;
@@ -137,7 +366,18 @@ export default function InstagramPost() {
 
     setLoading(true);
     setError(null);
+
     try {
+      let fileToUse = selectedFile;
+
+      if (!fileToUse && selectedBackgroundColor) {
+        fileToUse = await createBackgroundImageFile(selectedBackgroundColor);
+      }
+
+      if (!fileToUse) {
+        throw new Error("이미지 생성에 실패했습니다.");
+      }
+
       if (textOptions.textMode === "multiple") {
         let finalTextInputs = textInputs;
 
@@ -155,23 +395,23 @@ export default function InstagramPost() {
         );
 
         for (const textInput of validTextInputs) {
-          const finalTextOptions: ImageTextOptions = {
+          const finalTextOptions = adjustTextOptions({
             textMode: "single",
             title: textInput.title,
-            text: textInput.content || " ",
+            content: textInput.content || " ",
             titleFontSize: textOptions.titleFontSize,
             textFontSize: textOptions.textFontSize,
             titleColor: textOptions.titleColor,
             textColor: textOptions.textColor,
             fontFamily: textOptions.fontFamily,
             instagramRatio: textOptions.instagramRatio,
-          };
+          });
 
           const formData = new FormData();
-          formData.append("imageFile", fileInputRef.current.files[0]);
+          formData.append("imageFile", fileToUse);
           formData.append("textOptions", JSON.stringify(finalTextOptions));
 
-          const response = await fetch("/api/v1/image", {
+          const response = await fetch(API_ROUTES.IMAGE, {
             method: "POST",
             body: formData,
           });
@@ -192,16 +432,16 @@ export default function InstagramPost() {
           setResults((prev) => [...prev, newResult]);
         }
       } else {
-        const finalTextOptions = {
+        const finalTextOptions = adjustTextOptions({
           ...textOptions,
           textArray: undefined,
-        };
+        });
 
         const formData = new FormData();
-        formData.append("imageFile", fileInputRef.current.files[0]);
+        formData.append("imageFile", fileToUse);
         formData.append("textOptions", JSON.stringify(finalTextOptions));
 
-        const response = await fetch("/api/v1/image", {
+        const response = await fetch(API_ROUTES.IMAGE, {
           method: "POST",
           body: formData,
         });
@@ -226,7 +466,7 @@ export default function InstagramPost() {
         setTextOptions((prev) => ({
           ...prev,
           title: "",
-          text: "",
+          content: "",
         }));
       } else {
         if (multipleTextMode === "ui") {
@@ -339,160 +579,79 @@ export default function InstagramPost() {
   return (
     <DndProvider backend={HTML5Backend}>
       <MainLayout>
-        <div>
-          <h1 className="text-4xl font-extrabold mb-12 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">
-            인스타그램 포스트 에디터
+        <div className="container max-w-5xl mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold text-teal-400 mb-8">
+            인스타그램 이미지 생성기
           </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  이미지 선택
-                </label>
-                <input
-                  type="file"
-                  id="file-upload"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <div className="p-4 bg-slate-800/50 border border-slate-600/50 rounded-xl space-y-4">
-                  <label
-                    htmlFor="file-upload"
-                    className="inline-flex items-center px-4 py-2 rounded-xl bg-slate-700/50 border border-slate-600/50 hover:bg-slate-600/50 transition-colors cursor-pointer"
-                  >
-                    <svg
-                      className="w-5 h-5 mr-2 text-teal-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                    <span className="text-sm font-medium text-teal-400">
-                      {selectedFile ? "이미지 변경하기" : "이미지 추가하기"}
-                    </span>
-                  </label>
-                  {selectedFile && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between px-4 py-2 bg-slate-700/50 rounded-lg">
-                        <span className="text-sm text-slate-300">
-                          {selectedFile.name}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleRemoveFile}
-                          className="text-red-400 hover:text-red-300 transition-colors"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                      {previewImage && (
-                        <div className="relative w-full h-[300px] rounded-lg overflow-hidden">
-                          <Image
-                            src={previewImage}
-                            alt="선택된 이미지 미리보기"
-                            fill
-                            className="object-contain"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {error && (
+              <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200">
+                {error}
               </div>
-
-              <TextInputSection
-                textOptions={textOptions}
-                setTextOptions={setTextOptions}
-                multipleTextMode={multipleTextMode}
-                setMultipleTextMode={setMultipleTextMode}
-                textInputs={textInputs}
-                setTextInputs={setTextInputs}
-                jsonInput={jsonInput}
-                setJsonInput={setJsonInput}
-                jsonError={jsonError}
-                setJsonError={setJsonError}
-              />
-
-              <StyleOptionsSection
-                textOptions={textOptions}
-                setTextOptions={setTextOptions}
+            )}
+            <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg space-y-6">
+              <ImageUploadSection
+                selectedFile={selectedFile}
+                selectedBackgroundColor={selectedBackgroundColor}
+                previewImage={previewImage}
+                hasDefaultImage={hasDefaultImage}
+                handleImageUpload={handleImageUpload}
+                handleDefaultImageSelect={handleDefaultImageSelect}
+                handleDefaultImageChange={handleDefaultImageChange}
+                handleDefaultImageDelete={handleDefaultImageDelete}
+                handleRemoveFile={handleRemoveFile}
+                setIsDefaultImageModalOpen={setIsDefaultImageModalOpen}
+                setIsColorModalOpen={setIsColorModalOpen}
+                setSelectedBackgroundColor={setSelectedBackgroundColor}
               />
             </div>
+
+            <DefaultImageModal
+              isOpen={isDefaultImageModalOpen}
+              onClose={() => setIsDefaultImageModalOpen(false)}
+              onUploadSuccess={handleDefaultImageSelect}
+              setError={setError}
+              setHasDefaultImage={setHasDefaultImage}
+            />
+
+            <ColorModal
+              isOpen={isColorModalOpen}
+              onClose={() => setIsColorModalOpen(false)}
+              onColorSelect={handleColorSelect}
+              backgroundColors={Array.from(BACKGROUND_COLORS)}
+            />
+
+            <TextInputSection
+              textOptions={textOptions}
+              setTextOptions={setTextOptions}
+              multipleTextMode={multipleTextMode}
+              setMultipleTextMode={setMultipleTextMode}
+              textInputs={textInputs}
+              setTextInputs={setTextInputs}
+              jsonInput={jsonInput}
+              setJsonInput={setJsonInput}
+              jsonError={jsonError}
+              setJsonError={setJsonError}
+            />
+
+            <StyleOptionsSection
+              textOptions={textOptions}
+              setTextOptions={setTextOptions}
+            />
 
             <div className="flex justify-center mt-6">
-              <button
-                type="submit"
-                disabled={
-                  loading ||
-                  !selectedFile ||
-                  (textOptions.textMode === "single"
-                    ? !textOptions.title?.trim() && !textOptions.text?.trim()
-                    : multipleTextMode === "ui"
-                    ? textInputs.every(
-                        (input) => !input.title.trim() && !input.content.trim()
-                      )
-                    : !jsonInput.trim())
-                }
-                className="w-full px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed font-medium shadow-lg hover:shadow-xl"
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    처리중...
-                  </div>
-                ) : (
-                  "텍스트 추가하기"
-                )}
-              </button>
+              <SubmitButton
+                loading={loading}
+                selectedFile={selectedFile}
+                selectedBackgroundColor={selectedBackgroundColor}
+                textOptions={textOptions}
+                multipleTextMode={multipleTextMode}
+                textInputs={textInputs}
+                jsonInput={jsonInput}
+              />
             </div>
           </form>
-
-          {error && (
-            <div className="mt-8 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200">
-              {error}
-            </div>
-          )}
 
           {results.length > 0 && (
             <ResultsSection

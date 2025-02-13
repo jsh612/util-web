@@ -26,7 +26,7 @@ export interface CrawlResponse {
 export interface ImageTextOptions {
   textMode: "single" | "multiple";
   title?: string;
-  text: string;
+  content: string;
   textArray?: Array<{
     title: string;
     content: string;

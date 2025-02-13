@@ -4,6 +4,7 @@ export const API_ROUTES = {
   FIGMA: "/api/v1/figma",
   IMAGE: "/api/v1/image",
   PDF: "/api/v1/pdf",
+  INSTAGRAM_DEFAULT: "/api/v1/instagram-default",
 } as const;
 
 // Page Routes
