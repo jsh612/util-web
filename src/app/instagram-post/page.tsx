@@ -60,22 +60,25 @@ export default function InstagramPost() {
     textMode: "single",
     title: "",
     content: "",
+    bottom: "",
     textArray: [],
     titleFontSize: 64,
     textFontSize: 48,
+    bottomFontSize: 32,
     titleColor: "#ffffff",
     textColor: "#ffffff",
+    bottomColor: "#ffffff",
     fontFamily: "Arial",
     instagramRatio: "square",
   });
 
   const [textInputs, setTextInputs] = useState<
-    Array<{ title: string; content: string }>
-  >([{ title: "", content: "" }]);
+    Array<{ title: string; content: string; bottom: string }>
+  >([{ title: "", content: "", bottom: "" }]);
 
   const [multipleTextMode, setMultipleTextMode] = useState<"ui" | "json">("ui");
   const [jsonInput, setJsonInput] = useState<string>(
-    '[\n  {\n    "title": "제목",\n    "content": "본문"\n  }\n]'
+    '[\n  {\n    "title": "제목",\n    "content": "본문",\n    "bottom": "하단 텍스트"\n  }\n]'
   );
 
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -83,6 +86,7 @@ export default function InstagramPost() {
   const validateAndParseJson = (): Array<{
     title: string;
     content: string;
+    bottom: string;
   }> | null => {
     try {
       const parsed = JSON.parse(jsonInput);
@@ -95,11 +99,13 @@ export default function InstagramPost() {
             typeof item === "object" &&
             "title" in item &&
             "content" in item &&
+            "bottom" in item &&
             typeof item.title === "string" &&
-            typeof item.content === "string"
+            typeof item.content === "string" &&
+            typeof item.bottom === "string"
         )
       ) {
-        throw new Error("각 항목은 title과 content를 포함해야 합니다.");
+        throw new Error("각 항목은 title, content, bottom를 포함해야 합니다.");
       }
       return parsed;
     } catch (e) {
@@ -399,10 +405,13 @@ export default function InstagramPost() {
             textMode: "single",
             title: textInput.title,
             content: textInput.content || " ",
+            bottom: textInput.bottom || " ",
             titleFontSize: textOptions.titleFontSize,
             textFontSize: textOptions.textFontSize,
+            bottomFontSize: textOptions.bottomFontSize,
             titleColor: textOptions.titleColor,
             textColor: textOptions.textColor,
+            bottomColor: textOptions.bottomColor,
             fontFamily: textOptions.fontFamily,
             instagramRatio: textOptions.instagramRatio,
           });
@@ -467,13 +476,14 @@ export default function InstagramPost() {
           ...prev,
           title: "",
           content: "",
+          bottom: "",
         }));
       } else {
         if (multipleTextMode === "ui") {
-          setTextInputs([{ title: "", content: "" }]);
+          setTextInputs([{ title: "", content: "", bottom: "" }]);
         } else {
           setJsonInput(
-            '[\n  {\n    "title": "제목",\n    "content": "본문"\n  }\n]'
+            '[\n  {\n    "title": "제목",\n    "content": "본문",\n    "bottom": "하단 텍스트"\n  }\n]'
           );
         }
       }
