@@ -18,6 +18,29 @@ import { useEffect, useRef, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 
+const BACKGROUND_COLORS = [
+  // 밝은 색상
+  "#FFFFFF", // 흰색
+  "#F5F5F5", // 밝은 회색
+  "#ECE5C7", // 크림색
+  "#FFEEAD", // 베이지색
+
+  // 선명한 색상
+  "#FF6B6B", // 빨간색
+  "#4ECDC4", // 청록색
+  "#45B7D1", // 하늘색
+  "#96CEB4", // 민트색
+
+  // 중간 톤
+  "#576F72", // 차분한 그레이
+  "#395B64", // 깊은 청록색
+
+  // 어두운 색상
+  "#1B264F", // 딥 네이비
+  "#092635", // 미드나잇 블루
+  "#000000", // 검정색
+] as const;
+
 export default function InstagramPost() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,14 +55,6 @@ export default function InstagramPost() {
   const [isDefaultImageModalOpen, setIsDefaultImageModalOpen] = useState(false);
   const [hasDefaultImage, setHasDefaultImage] = useState(false);
   const [isColorModalOpen, setIsColorModalOpen] = useState(false);
-  const backgroundColors = [
-    "#FF6B6B", // 빨간색
-    "#4ECDC4", // 청록색
-    "#45B7D1", // 하늘색
-    "#96CEB4", // 민트색
-    "#FFEEAD", // 베이지색
-    "#000000", // 검정색
-  ];
 
   const [textOptions, setTextOptions] = useState<ImageTextOptions>({
     textMode: "single",
@@ -245,6 +260,71 @@ export default function InstagramPost() {
     throw new Error("배경 이미지 생성에 실패했습니다.");
   };
 
+  const adjustTextOptions = (options: ImageTextOptions): ImageTextOptions => {
+    const adjusted = { ...options };
+
+    // 이미지 크기 기준 설정 (1080px 기준, 좌우 여백 90px)
+    const maxWidth = 900;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) return adjusted;
+
+    // 제목 텍스트 줄바꿈 처리
+    if (adjusted.title) {
+      ctx.font = `${adjusted.titleFontSize}px ${adjusted.fontFamily}`;
+      const lines = [];
+      let currentLine = "";
+      let currentWidth = 0;
+
+      for (let i = 0; i < adjusted.title.length; i++) {
+        const char = adjusted.title[i];
+        const charWidth = ctx.measureText(char).width;
+
+        if (currentWidth + charWidth > maxWidth) {
+          lines.push(currentLine);
+          currentLine = char;
+          currentWidth = charWidth;
+        } else {
+          currentLine += char;
+          currentWidth += charWidth;
+        }
+      }
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      adjusted.title = lines.join("\n");
+    }
+
+    // 본문 텍스트 줄바꿈 처리
+    if (adjusted.text) {
+      ctx.font = `${adjusted.textFontSize}px ${adjusted.fontFamily}`;
+      const lines = [];
+      let currentLine = "";
+      let currentWidth = 0;
+
+      for (let i = 0; i < adjusted.text.length; i++) {
+        const char = adjusted.text[i];
+        const charWidth = ctx.measureText(char).width;
+
+        if (currentWidth + charWidth > maxWidth) {
+          lines.push(currentLine);
+          currentLine = char;
+          currentWidth = charWidth;
+        } else {
+          currentLine += char;
+          currentWidth += charWidth;
+        }
+      }
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      adjusted.text = lines.join("\n");
+    }
+
+    return adjusted;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -315,7 +395,7 @@ export default function InstagramPost() {
         );
 
         for (const textInput of validTextInputs) {
-          const finalTextOptions: ImageTextOptions = {
+          const finalTextOptions = adjustTextOptions({
             textMode: "single",
             title: textInput.title,
             text: textInput.content || " ",
@@ -325,7 +405,7 @@ export default function InstagramPost() {
             textColor: textOptions.textColor,
             fontFamily: textOptions.fontFamily,
             instagramRatio: textOptions.instagramRatio,
-          };
+          });
 
           const formData = new FormData();
           formData.append("imageFile", fileToUse);
@@ -352,10 +432,10 @@ export default function InstagramPost() {
           setResults((prev) => [...prev, newResult]);
         }
       } else {
-        const finalTextOptions = {
+        const finalTextOptions = adjustTextOptions({
           ...textOptions,
           textArray: undefined,
-        };
+        });
 
         const formData = new FormData();
         formData.append("imageFile", fileToUse);
@@ -539,7 +619,7 @@ export default function InstagramPost() {
               isOpen={isColorModalOpen}
               onClose={() => setIsColorModalOpen(false)}
               onColorSelect={handleColorSelect}
-              backgroundColors={backgroundColors}
+              backgroundColors={Array.from(BACKGROUND_COLORS)}
             />
 
             <TextInputSection
