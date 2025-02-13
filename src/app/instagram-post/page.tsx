@@ -333,6 +333,32 @@ export default function InstagramPost() {
       adjusted.content = lines.join("\n");
     }
 
+    // 하단 텍스트 줄바꿈 처리
+    if (adjusted.bottom) {
+      ctx.font = `${adjusted.bottomFontSize}px ${adjusted.fontFamily}`;
+      const lines = [];
+      let currentLine = "";
+      let currentWidth = 0;
+
+      for (let i = 0; i < adjusted.bottom.length; i++) {
+        const char = adjusted.bottom[i];
+        const charWidth = ctx.measureText(char).width;
+
+        if (currentWidth + charWidth > maxWidth) {
+          lines.push(currentLine);
+          currentLine = char;
+          currentWidth = charWidth;
+        } else {
+          currentLine += char;
+          currentWidth += charWidth;
+        }
+      }
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      adjusted.bottom = lines.join("\n");
+    }
+
     return adjusted;
   };
 
