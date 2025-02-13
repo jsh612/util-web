@@ -16,6 +16,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 텍스트 옵션 검증 추가
+    if (!textOptions.content && textOptions.textMode === "single") {
+      return NextResponse.json(
+        { error: "텍스트 내용이 필요합니다." },
+        { status: 400 }
+      );
+    }
+
     // 이미지 형식 검증
     if (!imageFile.type.startsWith("image/")) {
       return NextResponse.json(
@@ -63,7 +71,6 @@ export async function POST(request: NextRequest) {
     let finalImage;
 
     if (textOptions.textMode === "single") {
-      // 단일 텍스트 모드
       const titleY = Math.floor(targetHeight * 0.2);
       const titleLineHeight = (textOptions.titleFontSize ?? 64) * 1.2;
       const textLineHeight = (textOptions.textFontSize ?? 48) * 1.2;
@@ -85,7 +92,7 @@ export async function POST(request: NextRequest) {
         targetWidth,
         targetHeight,
         textOptions.title || "",
-        textOptions.text || "",
+        textOptions.content || "",
         titleY,
         textY,
         textOptions
@@ -191,16 +198,21 @@ export async function POST(request: NextRequest) {
 
 // SVG 텍스트 생성 헬퍼 함수
 function generateSvgText(
-  targetWidth: number,
-  targetHeight: number,
+  width: number,
+  height: number,
   title: string,
-  text: string,
+  content: string,
   titleY: number,
   textY: number,
   options: ImageTextOptions
 ): string {
+  const titleLines = title?.split("\n") || [];
+  const contentLines = content?.split("\n") || [];
+  const titleLineHeight = (options.titleFontSize ?? 64) * 1.2;
+  const textLineHeight = (options.textFontSize ?? 48) * 1.2;
+
   return `
-    <svg width="${targetWidth}" height="${targetHeight}" xmlns="http://www.w3.org/2000/svg">
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <style>
         .title { 
           font-family: ${options.fontFamily ?? "Arial"};
@@ -216,32 +228,28 @@ function generateSvgText(
           text-anchor: middle;
         }
       </style>
-      ${
-        title
-          ? title
-              .split("\n")
-              .map(
-                (line, i) =>
-                  `<text x="${targetWidth / 2}" y="${
-                    titleY + i * (options.titleFontSize ?? 64) * 1.2
-                  }" class="title">${line}</text>`
-              )
-              .join("")
-          : ""
-      }
-      ${
-        text
-          ? text
-              .split("\n")
-              .map(
-                (line, i) =>
-                  `<text x="${targetWidth / 2}" y="${
-                    textY + i * (options.textFontSize ?? 48) * 1.2
-                  }" class="text">${line}</text>`
-              )
-              .join("")
-          : ""
-      }
+      ${titleLines
+        .map(
+          (line, i) => `
+          <text
+            x="${width / 2}"
+            y="${titleY + i * titleLineHeight}"
+            class="title"
+          >${line}</text>
+      `
+        )
+        .join("")}
+      ${contentLines
+        .map(
+          (line, i) => `
+          <text
+            x="${width / 2}"
+            y="${textY + i * textLineHeight}"
+            class="text"
+          >${line}</text>
+      `
+        )
+        .join("")}
     </svg>
   `;
 }
