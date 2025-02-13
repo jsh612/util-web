@@ -281,82 +281,69 @@ export default function InstagramPost() {
 
     if (!ctx) return adjusted;
 
-    // 제목 텍스트 줄바꿈 처리
-    if (adjusted.title) {
-      ctx.font = `${adjusted.titleFontSize}px ${adjusted.fontFamily}`;
+    // 텍스트 줄바꿈 처리 함수
+    const wrapText = (text: string, fontSize: number, fontFamily: string) => {
+      ctx.font = `${fontSize}px ${fontFamily}`;
+      const words = text.split(/(?<=[\s\.,!?])/); // 공백, 마침표, 쉼표, 느낌표, 물음표 뒤에서 분리
       const lines = [];
       let currentLine = "";
       let currentWidth = 0;
 
-      for (let i = 0; i < adjusted.title.length; i++) {
-        const char = adjusted.title[i];
-        const charWidth = ctx.measureText(char).width;
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const wordWidth = ctx.measureText(word).width;
 
-        if (currentWidth + charWidth > maxWidth) {
-          lines.push(currentLine);
-          currentLine = char;
-          currentWidth = charWidth;
+        // 현재 줄이 비어있는 경우
+        if (currentLine === "") {
+          currentLine = word;
+          currentWidth = wordWidth;
+          continue;
+        }
+
+        // 현재 줄에 단어를 추가했을 때 최대 너비를 초과하는 경우
+        if (currentWidth + wordWidth > maxWidth) {
+          lines.push(currentLine.trim());
+          currentLine = word;
+          currentWidth = wordWidth;
         } else {
-          currentLine += char;
-          currentWidth += charWidth;
+          currentLine += word;
+          currentWidth += wordWidth;
         }
       }
+
+      // 마지막 줄 처리
       if (currentLine) {
-        lines.push(currentLine);
+        lines.push(currentLine.trim());
       }
-      adjusted.title = lines.join("\n");
+
+      return lines.join("\n");
+    };
+
+    // 제목 텍스트 줄바꿈 처리
+    if (adjusted.title) {
+      adjusted.title = wrapText(
+        adjusted.title,
+        adjusted.titleFontSize || 64,
+        adjusted.fontFamily || "Arial"
+      );
     }
 
     // 본문 텍스트 줄바꿈 처리
     if (adjusted.content) {
-      ctx.font = `${adjusted.textFontSize}px ${adjusted.fontFamily}`;
-      const lines = [];
-      let currentLine = "";
-      let currentWidth = 0;
-
-      for (let i = 0; i < adjusted.content.length; i++) {
-        const char = adjusted.content[i];
-        const charWidth = ctx.measureText(char).width;
-
-        if (currentWidth + charWidth > maxWidth) {
-          lines.push(currentLine);
-          currentLine = char;
-          currentWidth = charWidth;
-        } else {
-          currentLine += char;
-          currentWidth += charWidth;
-        }
-      }
-      if (currentLine) {
-        lines.push(currentLine);
-      }
-      adjusted.content = lines.join("\n");
+      adjusted.content = wrapText(
+        adjusted.content,
+        adjusted.textFontSize || 48,
+        adjusted.fontFamily || "Arial"
+      );
     }
 
     // 하단 텍스트 줄바꿈 처리
     if (adjusted.bottom) {
-      ctx.font = `${adjusted.bottomFontSize}px ${adjusted.fontFamily}`;
-      const lines = [];
-      let currentLine = "";
-      let currentWidth = 0;
-
-      for (let i = 0; i < adjusted.bottom.length; i++) {
-        const char = adjusted.bottom[i];
-        const charWidth = ctx.measureText(char).width;
-
-        if (currentWidth + charWidth > maxWidth) {
-          lines.push(currentLine);
-          currentLine = char;
-          currentWidth = charWidth;
-        } else {
-          currentLine += char;
-          currentWidth += charWidth;
-        }
-      }
-      if (currentLine) {
-        lines.push(currentLine);
-      }
-      adjusted.bottom = lines.join("\n");
+      adjusted.bottom = wrapText(
+        adjusted.bottom,
+        adjusted.bottomFontSize || 32,
+        adjusted.fontFamily || "Arial"
+      );
     }
 
     return adjusted;
