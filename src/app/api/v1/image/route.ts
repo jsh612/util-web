@@ -199,7 +199,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// SVG 텍스트 생성 헬퍼 함수
+// XML 특수 문자 이스케이프 함수 추가
+function escapeXml(unsafe: string): string {
+  return unsafe.replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case "&":
+        return "&amp;";
+      case "'":
+        return "&apos;";
+      case '"':
+        return "&quot;";
+      default:
+        return c;
+    }
+  });
+}
+
 function generateSvgText(
   width: number,
   height: number,
@@ -246,7 +265,7 @@ function generateSvgText(
             x="${width / 2}"
             y="${titleY + i * titleLineHeight}"
             class="title"
-          >${line}</text>
+          >${escapeXml(line)}</text>
       `
         )
         .join("")}
@@ -257,7 +276,7 @@ function generateSvgText(
             x="${width / 2}"
             y="${textY + i * textLineHeight}"
             class="text"
-          >${line}</text>
+          >${escapeXml(line)}</text>
       `
         )
         .join("")}
@@ -268,7 +287,7 @@ function generateSvgText(
             x="${width / 2}"
             y="${height - ((bottomLines.length - i) * bottomLineHeight + 50)}"
             class="bottom"
-          >${line}</text>
+          >${escapeXml(line)}</text>
       `
         )
         .join("")}
