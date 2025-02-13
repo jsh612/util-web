@@ -14,6 +14,7 @@ export default function StyleOptionsSection({
 }: StyleOptionsSectionProps) {
   const titleColorInputRef = useRef<HTMLInputElement>(null);
   const textColorInputRef = useRef<HTMLInputElement>(null);
+  const bottomColorInputRef = useRef<HTMLInputElement>(null);
 
   const handleTitleColorClick = () => {
     titleColorInputRef.current?.click();
@@ -21,6 +22,10 @@ export default function StyleOptionsSection({
 
   const handleTextColorClick = () => {
     textColorInputRef.current?.click();
+  };
+
+  const handleBottomColorClick = () => {
+    bottomColorInputRef.current?.click();
   };
 
   return (
@@ -251,6 +256,97 @@ export default function StyleOptionsSection({
                   style={{ backgroundColor: textOptions.textColor }}
                 />
                 <span className="text-slate-300">{textOptions.textColor}</span>
+              </div>
+              <div className="flex-1" />
+              <span className="text-sm text-slate-400 ml-4">색상 선택</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-300 mb-2">
+          하단 텍스트 글자 크기
+        </label>
+        <input
+          type="number"
+          value={textOptions.bottomFontSize}
+          onChange={(e) =>
+            setTextOptions({
+              ...textOptions,
+              bottomFontSize: Number(e.target.value),
+            })
+          }
+          className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-300 mb-2">
+          하단 텍스트 글자 색상
+        </label>
+        <div className="space-y-3">
+          <div>
+            <span className="text-sm font-medium text-slate-400 mb-2 block">
+              자주 사용
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {[
+                "#FFFFFF",
+                "#000000",
+                "#333333",
+                "#666666",
+                "#2C3E50",
+                "#E74C3C",
+                "#3498DB",
+                "#27AE60",
+              ].map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() =>
+                    setTextOptions({
+                      ...textOptions,
+                      bottomColor: color,
+                    })
+                  }
+                  className={`w-12 h-12 rounded-lg transition-all duration-200 ${
+                    textOptions.bottomColor === color
+                      ? "ring-2 ring-teal-400 scale-110"
+                      : "ring-1 ring-slate-600/50 hover:scale-105"
+                  }`}
+                  style={{ backgroundColor: color }}
+                  title={color}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="relative">
+            <input
+              ref={bottomColorInputRef}
+              type="color"
+              value={textOptions.bottomColor}
+              onChange={(e) =>
+                setTextOptions({
+                  ...textOptions,
+                  bottomColor: e.target.value,
+                })
+              }
+              className="sr-only"
+            />
+            <button
+              type="button"
+              onClick={handleBottomColorClick}
+              className="w-full h-12 px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 flex items-center"
+            >
+              <div className="flex items-center space-x-2">
+                <div
+                  className="w-6 h-6 rounded-md border border-slate-600/50"
+                  style={{ backgroundColor: textOptions.bottomColor }}
+                />
+                <span className="text-slate-300">
+                  {textOptions.bottomColor}
+                </span>
               </div>
               <div className="flex-1" />
               <span className="text-sm text-slate-400 ml-4">색상 선택</span>
