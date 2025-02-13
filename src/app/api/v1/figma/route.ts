@@ -1,8 +1,34 @@
 import { ComponentService } from "@/app/utils/figma-to-component";
+import * as fs from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
-  return NextResponse.json({ message: "GET 요청 테스트 성공!" });
+export async function GET(request: NextRequest) {
+  const filePath = request.nextUrl.searchParams.get("path");
+
+  if (!filePath) {
+    return NextResponse.json(
+      { error: "파일 경로가 필요합니다." },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const fileContent = await fs.readFile(filePath);
+    const fileName = filePath.split("/").pop() || "file";
+
+    return new NextResponse(fileContent, {
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Content-Disposition": `attachment; filename=${fileName}`,
+      },
+    });
+  } catch (error) {
+    console.error("File read error:", error);
+    return NextResponse.json(
+      { error: "파일을 읽을 수 없습니다." },
+      { status: 404 }
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
