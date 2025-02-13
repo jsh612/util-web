@@ -2,6 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  /* 폰트 패밀리 설정 */
+  .font-pretendard {
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui,
+      Roboto, sans-serif;
+  }
+
+  .font-noto-sans {
+    font-family: "Noto Sans KR", sans-serif;
+  }
+
+  .font-nanum-gothic {
+    font-family: "Nanum Gothic", sans-serif;
+  }
+
+  .font-nanum-myeongjo {
+    font-family: "Nanum Myeongjo", serif;
+  }
+
+  .font-nanum-pen {
+    font-family: "Nanum Pen Script", cursive;
+  }
+
+  .font-nanum-brush {
+    font-family: "Nanum Brush Script", cursive;
+  }
+
+  .font-gmarket {
+    font-family: "GmarketSansMedium", sans-serif;
+  }
+
+  .font-spoqa {
+    font-family: "SpoqaHanSansNeo", sans-serif;
+  }
+
+  .font-maru {
+    font-family: "MaruBuri", serif;
+  }
+
+  .font-cafe24 {
+    font-family: "Cafe24Ssurround", sans-serif;
+  }
+
+  .font-suite {
+    font-family: "SUITE", sans-serif;
+  }
+
+  .font-jamsil {
+    font-family: "TheJamsil", sans-serif;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

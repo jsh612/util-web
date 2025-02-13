@@ -8,6 +8,21 @@ interface StyleOptionsSectionProps {
   setTextOptions: (options: ImageTextOptions) => void;
 }
 
+const FONT_FAMILIES = [
+  { value: "Pretendard", label: "프리텐다드" },
+  { value: "Noto Sans KR", label: "노토 산스" },
+  { value: "Nanum Gothic", label: "나눔고딕" },
+  { value: "Nanum Myeongjo", label: "나눔명조" },
+  { value: "Nanum Pen Script", label: "나눔손글씨 펜" },
+  { value: "Nanum Brush Script", label: "나눔손글씨 붓" },
+  { value: "GmarketSansMedium", label: "지마켓산스" },
+  { value: "SpoqaHanSansNeo", label: "스포카 한 산스" },
+  { value: "MaruBuri", label: "마루 부리" },
+  { value: "Cafe24Ssurround", label: "카페24 써라운드" },
+  { value: "SUITE", label: "스위트" },
+  { value: "TheJamsil", label: "더 잠실" },
+] as const;
+
 export default function StyleOptionsSection({
   textOptions,
   setTextOptions,
@@ -352,6 +367,27 @@ export default function StyleOptionsSection({
               <span className="text-sm text-slate-400 ml-4">색상 선택</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-200">
+            폰트
+          </label>
+          <select
+            value={textOptions.fontFamily}
+            onChange={(e) =>
+              setTextOptions({ ...textOptions, fontFamily: e.target.value })
+            }
+            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            {FONT_FAMILIES.map((font) => (
+              <option key={font.value} value={font.value}>
+                {font.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
     </div>
