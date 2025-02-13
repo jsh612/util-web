@@ -12,6 +12,7 @@ export interface DragItem {
 }
 
 export interface TextInput {
-  title: string;
-  content: string;
+  title?: string;
+  content?: string;
+  bottom?: string;
 }

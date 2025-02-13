@@ -7,9 +7,9 @@ interface TextInputSectionProps {
   setTextOptions: (options: ImageTextOptions) => void;
   multipleTextMode: "ui" | "json";
   setMultipleTextMode: (mode: "ui" | "json") => void;
-  textInputs: Array<{ title: string; content: string; bottom: string }>;
+  textInputs: Array<{ title?: string; content?: string; bottom?: string }>;
   setTextInputs: (
-    inputs: Array<{ title: string; content: string; bottom: string }>
+    inputs: Array<{ title?: string; content?: string; bottom?: string }>
   ) => void;
   jsonInput: string;
   setJsonInput: (input: string) => void;
@@ -56,16 +56,13 @@ export default function TextInputSection({
           !parsed.every(
             (item) =>
               typeof item === "object" &&
-              "title" in item &&
-              "content" in item &&
-              "bottom" in item &&
-              typeof item.title === "string" &&
-              typeof item.content === "string" &&
-              typeof item.bottom === "string"
+              (!("title" in item) || typeof item.title === "string") &&
+              (!("content" in item) || typeof item.content === "string") &&
+              (!("bottom" in item) || typeof item.bottom === "string")
           )
         ) {
           setJsonError(
-            "각 항목은 title(문자열), content(문자열), bottom(문자열)를 포함해야 합니다."
+            "각 항목의 title, content, bottom은 모두 선택사항이며 문자열이어야 합니다."
           );
           return;
         }

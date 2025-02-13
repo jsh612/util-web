@@ -21,29 +21,29 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 const BACKGROUND_COLORS = [
   // 밝은 색상
   "#FFFFFF", // 흰색
-  "#F8F9FA", // 매우 밝은 그레이
   "#ECE5C7", // 크림색
   "#FFEEAD", // 베이지색
 
-  // 차분한 파스텔
+  // 파스텔
   "#E3F2FD", // 페이퍼 블루
   "#F3E5F5", // 페이퍼 퍼플
-  "#FFF3E0", // 페이퍼 오렌지
   "#E8F5E9", // 페이퍼 그린
 
   // 선명한 색상
   "#FF6B6B", // 빨간색
   "#4ECDC4", // 청록색
   "#45B7D1", // 하늘색
+  "#00B4D8", // 밝은 하늘색
+  "#48CAE4", // 연한 하늘색
+  "#40916C", // 진한 초록색
+  "#95D5B2", // 연한 초록색
 
   // 중간 톤
   "#576F72", // 차분한 그레이
-  "#34495E", // 깊은 슬레이트
   "#7F8C8D", // 중간 그레이
 
   // 어두운 색상
   "#1B264F", // 딥 네이비
-  "#2C3E50", // 다크 슬레이트
   "#000000", // 검정색
 ] as const;
 
@@ -79,20 +79,20 @@ export default function InstagramPost() {
   });
 
   const [textInputs, setTextInputs] = useState<
-    Array<{ title: string; content: string; bottom: string }>
+    Array<{ title?: string; content?: string; bottom?: string }>
   >([{ title: "", content: "", bottom: "" }]);
 
   const [multipleTextMode, setMultipleTextMode] = useState<"ui" | "json">("ui");
   const [jsonInput, setJsonInput] = useState<string>(
-    '[\n  {\n    "title": "제목",\n    "content": "본문",\n    "bottom": "하단 텍스트"\n  }\n]'
+    '[\n  {\n    "title": "제목 (선택)",\n    "content": "본문 (선택)",\n    "bottom": "하단 텍스트 (선택)"\n  }\n]'
   );
 
   const [jsonError, setJsonError] = useState<string | null>(null);
 
   const validateAndParseJson = (): Array<{
-    title: string;
-    content: string;
-    bottom: string;
+    title?: string;
+    content?: string;
+    bottom?: string;
   }> | null => {
     try {
       const parsed = JSON.parse(jsonInput);
@@ -103,15 +103,14 @@ export default function InstagramPost() {
         !parsed.every(
           (item) =>
             typeof item === "object" &&
-            "title" in item &&
-            "content" in item &&
-            "bottom" in item &&
-            typeof item.title === "string" &&
-            typeof item.content === "string" &&
-            typeof item.bottom === "string"
+            (!("title" in item) || typeof item.title === "string") &&
+            (!("content" in item) || typeof item.content === "string") &&
+            (!("bottom" in item) || typeof item.bottom === "string")
         )
       ) {
-        throw new Error("각 항목은 title, content, bottom를 포함해야 합니다.");
+        throw new Error(
+          "각 항목의 title, content, bottom은 모두 선택사항이며 문자열이어야 합니다."
+        );
       }
       return parsed;
     } catch (e) {
@@ -354,23 +353,33 @@ export default function InstagramPost() {
       return;
     }
 
+    if (
+      textOptions.textMode === "multiple" &&
+      multipleTextMode === "ui" &&
+      textInputs.every(
+        (input) =>
+          !input.title?.trim() &&
+          !input.content?.trim() &&
+          !input.bottom?.trim()
+      )
+    ) {
+      setError("최소 하나의 텍스트 세트에 텍스트를 입력해주세요.");
+      return;
+    }
+
     if (textOptions.textMode === "multiple") {
-      if (
-        multipleTextMode === "ui" &&
-        textInputs.every(
-          (input) => !input.title.trim() && !input.content.trim()
-        )
-      ) {
-        setError("최소 하나의 텍스트 세트에 제목 또는 본문을 입력해주세요.");
-        return;
-      }
       if (multipleTextMode === "json") {
         const parsedJson = validateAndParseJson();
         if (!parsedJson) return;
         if (
-          parsedJson.every((item) => !item.title.trim() && !item.content.trim())
+          parsedJson.every(
+            (item) =>
+              !item.title?.trim() &&
+              !item.content?.trim() &&
+              !item.bottom?.trim()
+          )
         ) {
-          setError("최소 하나의 텍스트 세트에 제목 또는 본문을 입력해주세요.");
+          setError("최소 하나의 텍스트 세트에 텍스트를 입력해주세요.");
           return;
         }
       }
@@ -403,15 +412,18 @@ export default function InstagramPost() {
         }
 
         const validTextInputs = finalTextInputs.filter(
-          (textInput) => textInput.title.trim() || textInput.content.trim()
+          (textInput) =>
+            textInput.title?.trim() ||
+            textInput.content?.trim() ||
+            textInput.bottom?.trim()
         );
 
         for (const textInput of validTextInputs) {
           const finalTextOptions = adjustTextOptions({
             textMode: "single",
-            title: textInput.title,
-            content: textInput.content || " ",
-            bottom: textInput.bottom || " ",
+            title: textInput.title || "",
+            content: textInput.content || "",
+            bottom: textInput.bottom || "",
             titleFontSize: textOptions.titleFontSize,
             textFontSize: textOptions.textFontSize,
             bottomFontSize: textOptions.bottomFontSize,
@@ -489,7 +501,7 @@ export default function InstagramPost() {
           setTextInputs([{ title: "", content: "", bottom: "" }]);
         } else {
           setJsonInput(
-            '[\n  {\n    "title": "제목",\n    "content": "본문",\n    "bottom": "하단 텍스트"\n  }\n]'
+            '[\n  {\n    "title": "제목 (선택)",\n    "content": "본문 (선택)",\n    "bottom": "하단 텍스트 (선택)"\n  }\n]'
           );
         }
       }
