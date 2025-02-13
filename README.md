@@ -25,9 +25,10 @@ Next.js 기반의 유틸리티 웹 애플리케이션입니다. Figma 디자인 
   - 디렉토리 구조 유지
   - 컴포넌트 이름으로 ZIP 파일 생성
 
-### 웹 크롤링
+### 웹 뉴스 크롤링
 
-- 지정된 웹사이트의 데이터를 수집하고 분석
+- 네이버 뉴스, CNN 또는 AP News 웹사이트에서 뉴스 크롤링
+- 크롤링한 뉴스 내용을 텍스트로 추출
 
 ### PDF 파싱
 
@@ -131,9 +132,8 @@ src/
 │   │       └── pdf/        # PDF API
 │   ├── components/        # 컴포넌트
 │   ├── utils/             # 유틸리티 함수
-│   ├── crawler/           # 크롤러 페이지
+│   ├── crawler/           # 뉴스 크롤러 페이지
 │   ├── figma/             # Figma 관련 페이지
-│   ├── image-editor/      # 이미지 편집 페이지
 │   └── instagram-post/    # 인스타그램 포스트 생성 페이지
 ├── constants/            # 상수 정의
 └── types/               # TypeScript 타입 정의
