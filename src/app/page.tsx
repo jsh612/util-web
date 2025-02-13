@@ -73,7 +73,12 @@ const tools = [
       </svg>
     ),
     path: PAGE_ROUTES.CRAWLER,
-    features: ["네이버 뉴스 지원", "CNN 기사 지원", "메타데이터 추출"],
+    features: [
+      "네이버 뉴스 지원",
+      "CNN 기사 지원",
+      "AP 뉴스 지원",
+      "메타데이터 추출",
+    ],
   },
 ];
 
