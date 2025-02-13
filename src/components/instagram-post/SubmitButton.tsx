@@ -1,5 +1,3 @@
-import { TextInput } from "@/types/instagram-post.types";
-
 interface SubmitButtonProps {
   loading: boolean;
   selectedFile: File | null;
@@ -8,9 +6,10 @@ interface SubmitButtonProps {
     textMode: "single" | "multiple";
     title?: string;
     content?: string;
+    bottom?: string;
   };
   multipleTextMode: "ui" | "json";
-  textInputs: TextInput[];
+  textInputs: Array<{ title?: string; content?: string; bottom?: string }>;
   jsonInput: string;
 }
 
@@ -30,10 +29,15 @@ export default function SubmitButton({
         loading ||
         (!selectedFile && !selectedBackgroundColor) ||
         (textOptions.textMode === "single"
-          ? !textOptions.title?.trim() && !textOptions.content?.trim()
+          ? !textOptions.title?.trim() &&
+            !textOptions.content?.trim() &&
+            !textOptions.bottom?.trim()
           : multipleTextMode === "ui"
           ? textInputs.every(
-              (input) => !input.title.trim() && !input.content.trim()
+              (input) =>
+                !input.title?.trim() &&
+                !input.content?.trim() &&
+                !input.bottom?.trim()
             )
           : !jsonInput.trim())
       }

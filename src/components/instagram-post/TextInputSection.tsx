@@ -7,8 +7,10 @@ interface TextInputSectionProps {
   setTextOptions: (options: ImageTextOptions) => void;
   multipleTextMode: "ui" | "json";
   setMultipleTextMode: (mode: "ui" | "json") => void;
-  textInputs: Array<{ title: string; content: string }>;
-  setTextInputs: (inputs: Array<{ title: string; content: string }>) => void;
+  textInputs: Array<{ title?: string; content?: string; bottom?: string }>;
+  setTextInputs: (
+    inputs: Array<{ title?: string; content?: string; bottom?: string }>
+  ) => void;
   jsonInput: string;
   setJsonInput: (input: string) => void;
   jsonError: string | null;
@@ -28,7 +30,7 @@ export default function TextInputSection({
   setJsonError,
 }: TextInputSectionProps) {
   const addTextInput = () => {
-    setTextInputs([...textInputs, { title: "", content: "" }]);
+    setTextInputs([...textInputs, { title: "", content: "", bottom: "" }]);
   };
 
   const removeTextInput = (index: number) => {
@@ -37,7 +39,7 @@ export default function TextInputSection({
 
   const updateTextInput = (
     index: number,
-    field: "title" | "content",
+    field: "title" | "content" | "bottom",
     value: string
   ) => {
     const newInputs = [...textInputs];
@@ -54,14 +56,13 @@ export default function TextInputSection({
           !parsed.every(
             (item) =>
               typeof item === "object" &&
-              "title" in item &&
-              "content" in item &&
-              typeof item.title === "string" &&
-              typeof item.content === "string"
+              (!("title" in item) || typeof item.title === "string") &&
+              (!("content" in item) || typeof item.content === "string") &&
+              (!("bottom" in item) || typeof item.bottom === "string")
           )
         ) {
           setJsonError(
-            "각 항목은 title(문자열)과 content(문자열)를 포함해야 합니다."
+            "각 항목의 title, content, bottom은 모두 선택사항이며 문자열이어야 합니다."
           );
           return;
         }
@@ -148,6 +149,23 @@ export default function TextInputSection({
               className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
               placeholder="본문 텍스트를 입력하세요 (선택사항)"
               rows={4}
+            />
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              하단 텍스트 (선택사항)
+            </label>
+            <textarea
+              value={textOptions.bottom}
+              onChange={(e) =>
+                setTextOptions({
+                  ...textOptions,
+                  bottom: e.target.value,
+                })
+              }
+              className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
+              placeholder="하단 텍스트를 입력하세요 (선택사항)"
+              rows={2}
             />
           </div>
         </>
@@ -267,6 +285,20 @@ export default function TextInputSection({
                       className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
                       placeholder="본문을 입력하세요"
                       rows={4}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      하단 텍스트
+                    </label>
+                    <textarea
+                      value={input.bottom}
+                      onChange={(e) =>
+                        updateTextInput(index, "bottom", e.target.value)
+                      }
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400 resize-none"
+                      placeholder="하단 텍스트를 입력하세요"
+                      rows={2}
                     />
                   </div>
                 </div>

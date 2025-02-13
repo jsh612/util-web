@@ -27,14 +27,18 @@ export interface ImageTextOptions {
   textMode: "single" | "multiple";
   title?: string;
   content: string;
+  bottom?: string;
   textArray?: Array<{
     title: string;
     content: string;
+    bottom?: string;
   }>;
   titleFontSize?: number;
   textFontSize?: number;
+  bottomFontSize?: number;
   titleColor?: string;
   textColor?: string;
+  bottomColor?: string;
   fontFamily?: string;
   instagramRatio?: "square" | "portrait" | "landscape";
 }

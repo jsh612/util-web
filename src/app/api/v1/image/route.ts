@@ -143,7 +143,10 @@ export async function POST(request: NextRequest) {
           textSet.content,
           titleY,
           textY,
-          textOptions
+          {
+            ...textOptions,
+            bottom: textSet.bottom,
+          }
         );
       });
 
@@ -196,7 +199,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// SVG 텍스트 생성 헬퍼 함수
+// XML 특수 문자 이스케이프 함수 추가
+function escapeXml(unsafe: string): string {
+  return unsafe.replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case "&":
+        return "&amp;";
+      case "'":
+        return "&apos;";
+      case '"':
+        return "&quot;";
+      default:
+        return c;
+    }
+  });
+}
+
 function generateSvgText(
   width: number,
   height: number,
@@ -208,8 +230,10 @@ function generateSvgText(
 ): string {
   const titleLines = title?.split("\n") || [];
   const contentLines = content?.split("\n") || [];
+  const bottomLines = options.bottom?.split("\n") || [];
   const titleLineHeight = (options.titleFontSize ?? 64) * 1.2;
   const textLineHeight = (options.textFontSize ?? 48) * 1.2;
+  const bottomLineHeight = (options.bottomFontSize ?? 32) * 1.2;
 
   return `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
@@ -227,6 +251,12 @@ function generateSvgText(
           fill: ${options.textColor ?? "#ffffff"};
           text-anchor: middle;
         }
+        .bottom {
+          font-family: ${options.fontFamily ?? "Arial"};
+          font-size: ${options.bottomFontSize ?? 32}px;
+          fill: ${options.bottomColor ?? "#ffffff"};
+          text-anchor: middle;
+        }
       </style>
       ${titleLines
         .map(
@@ -235,7 +265,7 @@ function generateSvgText(
             x="${width / 2}"
             y="${titleY + i * titleLineHeight}"
             class="title"
-          >${line}</text>
+          >${escapeXml(line)}</text>
       `
         )
         .join("")}
@@ -246,7 +276,18 @@ function generateSvgText(
             x="${width / 2}"
             y="${textY + i * textLineHeight}"
             class="text"
-          >${line}</text>
+          >${escapeXml(line)}</text>
+      `
+        )
+        .join("")}
+      ${bottomLines
+        .map(
+          (line, i) => `
+          <text
+            x="${width / 2}"
+            y="${height - ((bottomLines.length - i) * bottomLineHeight + 50)}"
+            class="bottom"
+          >${escapeXml(line)}</text>
       `
         )
         .join("")}
