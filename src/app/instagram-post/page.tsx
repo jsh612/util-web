@@ -21,23 +21,29 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 const BACKGROUND_COLORS = [
   // 밝은 색상
   "#FFFFFF", // 흰색
-  "#F5F5F5", // 밝은 회색
   "#ECE5C7", // 크림색
   "#FFEEAD", // 베이지색
+
+  // 파스텔
+  "#E3F2FD", // 페이퍼 블루
+  "#F3E5F5", // 페이퍼 퍼플
+  "#E8F5E9", // 페이퍼 그린
 
   // 선명한 색상
   "#FF6B6B", // 빨간색
   "#4ECDC4", // 청록색
   "#45B7D1", // 하늘색
-  "#96CEB4", // 민트색
+  "#00B4D8", // 밝은 하늘색
+  "#48CAE4", // 연한 하늘색
+  "#40916C", // 진한 초록색
+  "#95D5B2", // 연한 초록색
 
   // 중간 톤
   "#576F72", // 차분한 그레이
-  "#395B64", // 깊은 청록색
+  "#7F8C8D", // 중간 그레이
 
   // 어두운 색상
   "#1B264F", // 딥 네이비
-  "#092635", // 미드나잇 블루
   "#000000", // 검정색
 ] as const;
 
@@ -60,29 +66,33 @@ export default function InstagramPost() {
     textMode: "single",
     title: "",
     content: "",
+    bottom: "",
     textArray: [],
     titleFontSize: 64,
     textFontSize: 48,
+    bottomFontSize: 32,
     titleColor: "#ffffff",
     textColor: "#ffffff",
+    bottomColor: "#ffffff",
     fontFamily: "Arial",
     instagramRatio: "square",
   });
 
   const [textInputs, setTextInputs] = useState<
-    Array<{ title: string; content: string }>
-  >([{ title: "", content: "" }]);
+    Array<{ title?: string; content?: string; bottom?: string }>
+  >([{ title: "", content: "", bottom: "" }]);
 
   const [multipleTextMode, setMultipleTextMode] = useState<"ui" | "json">("ui");
   const [jsonInput, setJsonInput] = useState<string>(
-    '[\n  {\n    "title": "제목",\n    "content": "본문"\n  }\n]'
+    '[\n  {\n    "title": "제목 (선택)",\n    "content": "본문 (선택)",\n    "bottom": "하단 텍스트 (선택)"\n  }\n]'
   );
 
   const [jsonError, setJsonError] = useState<string | null>(null);
 
   const validateAndParseJson = (): Array<{
-    title: string;
-    content: string;
+    title?: string;
+    content?: string;
+    bottom?: string;
   }> | null => {
     try {
       const parsed = JSON.parse(jsonInput);
@@ -93,13 +103,14 @@ export default function InstagramPost() {
         !parsed.every(
           (item) =>
             typeof item === "object" &&
-            "title" in item &&
-            "content" in item &&
-            typeof item.title === "string" &&
-            typeof item.content === "string"
+            (!("title" in item) || typeof item.title === "string") &&
+            (!("content" in item) || typeof item.content === "string") &&
+            (!("bottom" in item) || typeof item.bottom === "string")
         )
       ) {
-        throw new Error("각 항목은 title과 content를 포함해야 합니다.");
+        throw new Error(
+          "각 항목의 title, content, bottom은 모두 선택사항이며 문자열이어야 합니다."
+        );
       }
       return parsed;
     } catch (e) {
@@ -322,6 +333,32 @@ export default function InstagramPost() {
       adjusted.content = lines.join("\n");
     }
 
+    // 하단 텍스트 줄바꿈 처리
+    if (adjusted.bottom) {
+      ctx.font = `${adjusted.bottomFontSize}px ${adjusted.fontFamily}`;
+      const lines = [];
+      let currentLine = "";
+      let currentWidth = 0;
+
+      for (let i = 0; i < adjusted.bottom.length; i++) {
+        const char = adjusted.bottom[i];
+        const charWidth = ctx.measureText(char).width;
+
+        if (currentWidth + charWidth > maxWidth) {
+          lines.push(currentLine);
+          currentLine = char;
+          currentWidth = charWidth;
+        } else {
+          currentLine += char;
+          currentWidth += charWidth;
+        }
+      }
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      adjusted.bottom = lines.join("\n");
+    }
+
     return adjusted;
   };
 
@@ -342,23 +379,33 @@ export default function InstagramPost() {
       return;
     }
 
+    if (
+      textOptions.textMode === "multiple" &&
+      multipleTextMode === "ui" &&
+      textInputs.every(
+        (input) =>
+          !input.title?.trim() &&
+          !input.content?.trim() &&
+          !input.bottom?.trim()
+      )
+    ) {
+      setError("최소 하나의 텍스트 세트에 텍스트를 입력해주세요.");
+      return;
+    }
+
     if (textOptions.textMode === "multiple") {
-      if (
-        multipleTextMode === "ui" &&
-        textInputs.every(
-          (input) => !input.title.trim() && !input.content.trim()
-        )
-      ) {
-        setError("최소 하나의 텍스트 세트에 제목 또는 본문을 입력해주세요.");
-        return;
-      }
       if (multipleTextMode === "json") {
         const parsedJson = validateAndParseJson();
         if (!parsedJson) return;
         if (
-          parsedJson.every((item) => !item.title.trim() && !item.content.trim())
+          parsedJson.every(
+            (item) =>
+              !item.title?.trim() &&
+              !item.content?.trim() &&
+              !item.bottom?.trim()
+          )
         ) {
-          setError("최소 하나의 텍스트 세트에 제목 또는 본문을 입력해주세요.");
+          setError("최소 하나의 텍스트 세트에 텍스트를 입력해주세요.");
           return;
         }
       }
@@ -391,18 +438,24 @@ export default function InstagramPost() {
         }
 
         const validTextInputs = finalTextInputs.filter(
-          (textInput) => textInput.title.trim() || textInput.content.trim()
+          (textInput) =>
+            textInput.title?.trim() ||
+            textInput.content?.trim() ||
+            textInput.bottom?.trim()
         );
 
         for (const textInput of validTextInputs) {
           const finalTextOptions = adjustTextOptions({
             textMode: "single",
-            title: textInput.title,
-            content: textInput.content || " ",
+            title: textInput.title || "",
+            content: textInput.content || "",
+            bottom: textInput.bottom || "",
             titleFontSize: textOptions.titleFontSize,
             textFontSize: textOptions.textFontSize,
+            bottomFontSize: textOptions.bottomFontSize,
             titleColor: textOptions.titleColor,
             textColor: textOptions.textColor,
+            bottomColor: textOptions.bottomColor,
             fontFamily: textOptions.fontFamily,
             instagramRatio: textOptions.instagramRatio,
           });
@@ -467,13 +520,14 @@ export default function InstagramPost() {
           ...prev,
           title: "",
           content: "",
+          bottom: "",
         }));
       } else {
         if (multipleTextMode === "ui") {
-          setTextInputs([{ title: "", content: "" }]);
+          setTextInputs([{ title: "", content: "", bottom: "" }]);
         } else {
           setJsonInput(
-            '[\n  {\n    "title": "제목",\n    "content": "본문"\n  }\n]'
+            '[\n  {\n    "title": "제목 (선택)",\n    "content": "본문 (선택)",\n    "bottom": "하단 텍스트 (선택)"\n  }\n]'
           );
         }
       }
@@ -581,7 +635,7 @@ export default function InstagramPost() {
       <MainLayout>
         <div className="container max-w-5xl mx-auto px-4 py-8">
           <h1 className="text-3xl font-bold text-teal-400 mb-8">
-            인스타그램 이미지 생성기
+            인스타그램 포스트 에디터
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-8">
