@@ -79,7 +79,7 @@ export default function CrawlerPage() {
               htmlFor="url"
               className="block text-sm font-medium text-slate-300 mb-2"
             >
-              뉴스 URL (네이버 뉴스 또는 CNN)
+              뉴스 URL (네이버 뉴스, CNN 또는 AP News)
             </label>
             <input
               type="url"
@@ -88,7 +88,7 @@ export default function CrawlerPage() {
               onChange={(e) => setInputUrl(e.target.value)}
               required
               className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400"
-              placeholder="https://news.naver.com/..."
+              placeholder="https://news.naver.com/... 또는 https://www.cnn.com/... 또는 https://apnews.com/..."
             />
           </div>
 

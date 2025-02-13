@@ -12,9 +12,11 @@ export class CrawlerService {
         return this.crawlNaverNews($);
       } else if (url.includes("cnn.com")) {
         return this.crawlCnnNews($);
+      } else if (url.includes("apnews.com")) {
+        return this.crawlApNews($);
       } else {
         throw new Error(
-          "지원하지 않는 뉴스 사이트입니다. (현재 Naver News, CNN만 지원)"
+          "지원하지 않는 뉴스 사이트입니다. (현재 Naver News, CNN, AP News만 지원)"
         );
       }
     } catch (error) {
@@ -73,6 +75,55 @@ export class CrawlerService {
       content,
       publisher,
       author,
+    };
+  }
+
+  private crawlApNews($: cheerio.CheerioAPI): CrawlResponse {
+    // 제목
+    const title = $("h1").first().text().trim();
+
+    // 본문 (RichTextStoryBody 내의 p 태그들)
+    const paragraphs = $(".RichTextStoryBody p")
+      .map((_, el) => $(el).text().trim())
+      .get()
+      .filter(
+        (text) =>
+          text.length > 0 &&
+          !text.includes("Advertisement") &&
+          !text.includes("___") &&
+          !text.startsWith("By ") &&
+          !text.includes("Updated") &&
+          !text.includes("Published")
+      );
+
+    const content = paragraphs.join("\n\n");
+
+    // 작성자 정보 (첫 번째 문단에서 "By "로 시작하는 텍스트 찾기)
+    const authorText = $(".RichTextStoryBody p")
+      .filter((_, el) => $(el).text().trim().startsWith("By "))
+      .first()
+      .text()
+      .trim();
+
+    const author = authorText ? authorText.replace(/^By\s+/, "") : "AP News";
+
+    // 날짜 정보 (Updated 또는 Published를 포함하는 문단)
+    const dateText = $(".RichTextStoryBody p")
+      .filter((_, el) => {
+        const text = $(el).text().trim();
+        return text.includes("Updated") || text.includes("Published");
+      })
+      .first()
+      .text()
+      .trim();
+
+    return {
+      type: "ap",
+      title,
+      content,
+      publisher: "AP News",
+      author,
+      date: dateText,
     };
   }
 }
