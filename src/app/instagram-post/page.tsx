@@ -59,7 +59,7 @@ export default function InstagramPost() {
   const [textOptions, setTextOptions] = useState<ImageTextOptions>({
     textMode: "single",
     title: "",
-    text: "",
+    content: "",
     textArray: [],
     titleFontSize: 64,
     textFontSize: 48,
@@ -297,14 +297,14 @@ export default function InstagramPost() {
     }
 
     // 본문 텍스트 줄바꿈 처리
-    if (adjusted.text) {
+    if (adjusted.content) {
       ctx.font = `${adjusted.textFontSize}px ${adjusted.fontFamily}`;
       const lines = [];
       let currentLine = "";
       let currentWidth = 0;
 
-      for (let i = 0; i < adjusted.text.length; i++) {
-        const char = adjusted.text[i];
+      for (let i = 0; i < adjusted.content.length; i++) {
+        const char = adjusted.content[i];
         const charWidth = ctx.measureText(char).width;
 
         if (currentWidth + charWidth > maxWidth) {
@@ -319,7 +319,7 @@ export default function InstagramPost() {
       if (currentLine) {
         lines.push(currentLine);
       }
-      adjusted.text = lines.join("\n");
+      adjusted.content = lines.join("\n");
     }
 
     return adjusted;
@@ -336,7 +336,7 @@ export default function InstagramPost() {
     if (
       textOptions.textMode === "single" &&
       !textOptions.title?.trim() &&
-      !textOptions.text?.trim()
+      !textOptions.content?.trim()
     ) {
       setError("제목 또는 본문을 입력해주세요.");
       return;
@@ -398,7 +398,7 @@ export default function InstagramPost() {
           const finalTextOptions = adjustTextOptions({
             textMode: "single",
             title: textInput.title,
-            text: textInput.content || " ",
+            content: textInput.content || " ",
             titleFontSize: textOptions.titleFontSize,
             textFontSize: textOptions.textFontSize,
             titleColor: textOptions.titleColor,
@@ -466,7 +466,7 @@ export default function InstagramPost() {
         setTextOptions((prev) => ({
           ...prev,
           title: "",
-          text: "",
+          content: "",
         }));
       } else {
         if (multipleTextMode === "ui") {

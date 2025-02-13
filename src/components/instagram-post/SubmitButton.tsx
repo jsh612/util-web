@@ -7,7 +7,7 @@ interface SubmitButtonProps {
   textOptions: {
     textMode: "single" | "multiple";
     title?: string;
-    text?: string;
+    content?: string;
   };
   multipleTextMode: "ui" | "json";
   textInputs: TextInput[];
@@ -30,7 +30,7 @@ export default function SubmitButton({
         loading ||
         (!selectedFile && !selectedBackgroundColor) ||
         (textOptions.textMode === "single"
-          ? !textOptions.title?.trim() && !textOptions.text?.trim()
+          ? !textOptions.title?.trim() && !textOptions.content?.trim()
           : multipleTextMode === "ui"
           ? textInputs.every(
               (input) => !input.title.trim() && !input.content.trim()
