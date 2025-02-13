@@ -40,17 +40,18 @@ export class ComponentService {
       // 프롬프트 텍스트 생성
       const promptText = this.generatePromptText(createComponentDto);
 
-      // 파일 저장 경로 생성
-      const basePath = this.resolvePath(createComponentDto.filePath, "");
-      const promptPath = path.join(
-        basePath,
-        `${createComponentDto.fileName}.txt`
+      // 디렉토리 경로 생성
+      const componentDir = path.join(
+        process.cwd(),
+        createComponentDto.filePath,
+        createComponentDto.fileName
       );
 
       // 디렉토리 생성
-      await fs.mkdir(basePath, { recursive: true });
+      await fs.mkdir(componentDir, { recursive: true });
 
-      // 프롬프트 파일 작성
+      // 프롬프트 파일 저장
+      const promptPath = path.join(componentDir, "prompt.txt");
       await fs.writeFile(promptPath, promptText, "utf-8");
 
       // 첨부 파일 처리
@@ -64,10 +65,7 @@ export class ComponentService {
           throw new Error("첨부 파일은 최대 5개까지만 가능합니다.");
         }
 
-        const filesDir = path.join(
-          basePath,
-          `${createComponentDto.fileName}_files`
-        );
+        const filesDir = path.join(componentDir, "attachments");
         await fs.mkdir(filesDir, { recursive: true });
 
         for (const file of createComponentDto.files) {

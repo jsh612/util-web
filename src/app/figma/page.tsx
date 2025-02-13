@@ -110,10 +110,7 @@ export default function FigmaPage() {
 
       const newFormData = new FormData();
       newFormData.append("figmaUrl", figmaUrl);
-      newFormData.append(
-        "filePath",
-        (formData.get("filePath") as string) || "prompt-files"
-      );
+      newFormData.append("filePath", "prompt-files");
       newFormData.append(
         "fileName",
         (formData.get("fileName") as string) || "prompt-file"
@@ -169,15 +166,16 @@ export default function FigmaPage() {
       // 프롬프트 파일 추가
       const promptResponse = await fetch(result.path);
       const promptBlob = await promptResponse.blob();
-      zip.file(`${result.path.split("/").pop()}`, promptBlob);
+      const componentName = result.path.split("/").slice(-2)[0];
+      zip.file(`${componentName}/prompt.txt`, promptBlob);
 
       // 첨부 파일 추가
       if (result.attachments.length > 0) {
-        const attachmentsFolder = zip.folder("attachments");
         for (const filePath of result.attachments) {
           const response = await fetch(filePath);
           const blob = await response.blob();
-          attachmentsFolder?.file(filePath.split("/").pop() || "", blob);
+          const fileName = filePath.split("/").pop() || "";
+          zip.file(`${componentName}/attachments/${fileName}`, blob);
         }
       }
 
@@ -185,7 +183,7 @@ export default function FigmaPage() {
       const url = window.URL.createObjectURL(content);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "figma-component.zip";
+      a.download = `${componentName}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -235,23 +233,7 @@ export default function FigmaPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label
-                htmlFor="filePath"
-                className="block text-sm font-medium text-slate-300 mb-2"
-              >
-                파일 경로
-              </label>
-              <input
-                type="text"
-                id="filePath"
-                name="filePath"
-                placeholder="기본값: /prompt-files"
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400"
-              />
-            </div>
-
+          <div className="grid grid-cols-1 gap-6">
             <div>
               <label
                 htmlFor="fileName"
