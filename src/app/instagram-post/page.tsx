@@ -695,7 +695,7 @@ export default function InstagramPost() {
                         </button>
                       </div>
                       {(previewImage || selectedBackgroundColor) && (
-                        <div className="relative w-full max-w-md mx-auto aspect-square rounded-lg overflow-hidden">
+                        <div className="relative w-[350px] h-[350px] mx-auto rounded-lg overflow-hidden">
                           {previewImage ? (
                             <Image
                               src={previewImage}
