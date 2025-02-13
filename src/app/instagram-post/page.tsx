@@ -635,7 +635,7 @@ export default function InstagramPost() {
       <MainLayout>
         <div className="container max-w-5xl mx-auto px-4 py-8">
           <h1 className="text-3xl font-bold text-teal-400 mb-8">
-            인스타그램 이미지 생성기
+            인스타그램 포스트 에디터
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-8">
