@@ -15,7 +15,7 @@ export interface ComponentResponse {
 }
 
 export interface CrawlResponse {
-  type: "naver" | "cnn";
+  type: "naver" | "cnn" | "ap";
   title: string;
   content: string;
   date?: string;
