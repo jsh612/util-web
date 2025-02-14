@@ -26,11 +26,11 @@ export interface CrawlResponse {
 export interface ImageTextOptions {
   textMode: "single" | "multiple";
   title?: string;
-  content: string;
+  content?: string;
   bottom?: string;
   textArray?: Array<{
-    title: string;
-    content: string;
+    title?: string;
+    content?: string;
     bottom?: string;
   }>;
   titleFontSize?: number;
