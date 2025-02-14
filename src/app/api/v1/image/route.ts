@@ -11,8 +11,8 @@ async function generateHtml(
   backgroundColor?: string
 ): Promise<string> {
   const titleY = Math.floor(height * 0.2);
-  const titleLineHeight = (textOptions.titleFontSize ?? 64) * 1.2;
-  const textLineHeight = (textOptions.textFontSize ?? 48) * 1.2;
+  const titleLineHeight = (textOptions.titleFontSize ?? 64) * 1.4;
+  const textLineHeight = (textOptions.textFontSize ?? 48) * 1.6;
   const spaceBetweenTitleAndText = Math.max(titleLineHeight, textLineHeight);
 
   let textY: number;
@@ -87,6 +87,8 @@ async function generateHtml(
             display: flex;
             flex-direction: column;
             align-items: center;
+            padding: 0 ${Math.floor(width * 0.15)}px;
+            box-sizing: border-box;
           }
 
           .title {
@@ -95,11 +97,20 @@ async function generateHtml(
             color: ${textOptions.titleColor ?? "#ffffff"};
             text-align: center;
             font-weight: bold;
-            white-space: pre-line;
+            line-height: 1.4;
+            letter-spacing: -0.02em;
+            word-break: normal;
+            overflow-wrap: break-word;
             position: absolute;
             top: ${titleY}px;
             width: 100%;
-            line-height: 1.2;
+            padding: 0 ${Math.floor(width * 0.05)}px;
+            box-sizing: border-box;
+            text-shadow: ${
+              textOptions.titleColor === "#000000"
+                ? "0 0 1px rgba(255,255,255,0.5), 0 0 2px rgba(255,255,255,0.3)"
+                : "0 0 1px rgba(0,0,0,0.5), 0 0 2px rgba(0,0,0,0.3)"
+            };
           }
 
           .content {
@@ -107,11 +118,20 @@ async function generateHtml(
             font-size: ${textOptions.textFontSize ?? 48}px;
             color: ${textOptions.textColor ?? "#ffffff"};
             text-align: center;
-            white-space: pre-line;
+            line-height: 1.6;
+            letter-spacing: -0.01em;
+            word-break: normal;
+            overflow-wrap: break-word;
             position: absolute;
             top: ${textY}px;
             width: 100%;
-            line-height: 1.2;
+            padding: 0 ${Math.floor(width * 0.05)}px;
+            box-sizing: border-box;
+            text-shadow: ${
+              textOptions.textColor === "#000000"
+                ? "0 0 1px rgba(255,255,255,0.5), 0 0 2px rgba(255,255,255,0.3)"
+                : "0 0 1px rgba(0,0,0,0.5), 0 0 2px rgba(0,0,0,0.3)"
+            };
           }
 
           .bottom {
@@ -119,11 +139,25 @@ async function generateHtml(
             font-size: ${textOptions.bottomFontSize ?? 32}px;
             color: ${textOptions.bottomColor ?? "#ffffff"};
             text-align: center;
-            white-space: pre-line;
+            line-height: 1.4;
+            letter-spacing: 0;
+            word-break: normal;
+            overflow-wrap: break-word;
             position: absolute;
-            bottom: 50px;
+            bottom: ${Math.floor(height * 0.1)}px;
             width: 100%;
-            line-height: 1.2;
+            padding: 0 ${Math.floor(width * 0.05)}px;
+            box-sizing: border-box;
+            text-shadow: ${
+              textOptions.bottomColor === "#000000"
+                ? "0 0 1px rgba(255,255,255,0.5), 0 0 2px rgba(255,255,255,0.3)"
+                : "0 0 1px rgba(0,0,0,0.5), 0 0 2px rgba(0,0,0,0.3)"
+            };
+          }
+
+          .date {
+            display: inline-block;
+            white-space: nowrap;
           }
         </style>
       </head>
@@ -131,17 +165,26 @@ async function generateHtml(
         <div class="text-container">
           ${
             textOptions.title
-              ? `<div class="title">${textOptions.title}</div>`
+              ? `<div class="title">${textOptions.title.replace(
+                  /\n/g,
+                  "<br>"
+                )}</div>`
               : ""
           }
           ${
             textOptions.content
-              ? `<div class="content">${textOptions.content}</div>`
+              ? `<div class="content">${textOptions.content.replace(
+                  /\n/g,
+                  "<br>"
+                )}</div>`
               : ""
           }
           ${
             textOptions.bottom
-              ? `<div class="bottom">${textOptions.bottom}</div>`
+              ? `<div class="bottom">${textOptions.bottom.replace(
+                  /\n/g,
+                  "<br>"
+                )}</div>`
               : ""
           }
         </div>

@@ -271,84 +271,6 @@ export default function InstagramPost() {
     throw new Error("배경 이미지 생성에 실패했습니다.");
   };
 
-  const adjustTextOptions = (options: ImageTextOptions): ImageTextOptions => {
-    const adjusted = { ...options };
-
-    // 이미지 크기 기준 설정 (1080px 기준, 좌우 여백 90px)
-    const maxWidth = 900;
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    if (!ctx) return adjusted;
-
-    // 텍스트 줄바꿈 처리 함수
-    const wrapText = (text: string, fontSize: number, fontFamily: string) => {
-      ctx.font = `${fontSize}px ${fontFamily}`;
-      const words = text.split(/(?<=[\s\.,!?])/); // 공백, 마침표, 쉼표, 느낌표, 물음표 뒤에서 분리
-      const lines = [];
-      let currentLine = "";
-      let currentWidth = 0;
-
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i];
-        const wordWidth = ctx.measureText(word).width;
-
-        // 현재 줄이 비어있는 경우
-        if (currentLine === "") {
-          currentLine = word;
-          currentWidth = wordWidth;
-          continue;
-        }
-
-        // 현재 줄에 단어를 추가했을 때 최대 너비를 초과하는 경우
-        if (currentWidth + wordWidth > maxWidth) {
-          lines.push(currentLine.trim());
-          currentLine = word;
-          currentWidth = wordWidth;
-        } else {
-          currentLine += word;
-          currentWidth += wordWidth;
-        }
-      }
-
-      // 마지막 줄 처리
-      if (currentLine) {
-        lines.push(currentLine.trim());
-      }
-
-      return lines.join("\n");
-    };
-
-    // 제목 텍스트 줄바꿈 처리
-    if (adjusted.title) {
-      adjusted.title = wrapText(
-        adjusted.title,
-        adjusted.titleFontSize || 64,
-        adjusted.fontFamily || "Arial"
-      );
-    }
-
-    // 본문 텍스트 줄바꿈 처리
-    if (adjusted.content) {
-      adjusted.content = wrapText(
-        adjusted.content,
-        adjusted.textFontSize || 48,
-        adjusted.fontFamily || "Arial"
-      );
-    }
-
-    // 하단 텍스트 줄바꿈 처리
-    if (adjusted.bottom) {
-      adjusted.bottom = wrapText(
-        adjusted.bottom,
-        adjusted.bottomFontSize || 32,
-        adjusted.fontFamily || "Arial"
-      );
-    }
-
-    return adjusted;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -432,20 +354,13 @@ export default function InstagramPost() {
         );
 
         for (const textInput of validTextInputs) {
-          const finalTextOptions = adjustTextOptions({
-            textMode: "single",
-            title: textInput.title || "",
-            content: textInput.content || "",
-            bottom: textInput.bottom || "",
-            titleFontSize: textOptions.titleFontSize,
-            textFontSize: textOptions.textFontSize,
-            bottomFontSize: textOptions.bottomFontSize,
-            titleColor: textOptions.titleColor,
-            textColor: textOptions.textColor,
-            bottomColor: textOptions.bottomColor,
-            fontFamily: textOptions.fontFamily,
-            instagramRatio: textOptions.instagramRatio,
-          });
+          const finalTextOptions: ImageTextOptions = {
+            ...textOptions,
+            textMode: "single" as const,
+            title: textInput.title?.replace(/\\n/g, "\n") || "",
+            content: textInput.content?.replace(/\\n/g, "\n") || "",
+            bottom: textInput.bottom?.replace(/\\n/g, "\n") || "",
+          };
 
           const formData = new FormData();
           formData.append("imageFile", fileToUse);
@@ -472,10 +387,10 @@ export default function InstagramPost() {
           setResults((prev) => [...prev, newResult]);
         }
       } else {
-        const finalTextOptions = adjustTextOptions({
+        const finalTextOptions: ImageTextOptions = {
           ...textOptions,
           textArray: undefined,
-        });
+        };
 
         const formData = new FormData();
         formData.append("imageFile", fileToUse);
