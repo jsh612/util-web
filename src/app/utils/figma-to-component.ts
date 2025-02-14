@@ -37,6 +37,9 @@ export class ComponentService {
         throw new Error("Figma API로부터 올바른 데이터를 받지 못했습니다.");
       }
 
+      // Figma API 응답을 DTO에 저장
+      createComponentDto.figmaApiResponse = JSON.stringify(figmaData, null, 2);
+
       // 프롬프트 텍스트 생성
       const promptText = this.generatePromptText(createComponentDto);
 
@@ -56,6 +59,8 @@ export class ComponentService {
 
       // 첨부 파일 처리
       const savedFiles: string[] = [];
+      const generatedFiles: string[] = [promptPath]; // 생성된 파일 목록에 프롬프트 파일 추가
+
       if (
         createComponentDto.files &&
         Array.isArray(createComponentDto.files) &&
@@ -97,6 +102,7 @@ export class ComponentService {
         message: "컴포넌트 프롬프트가 생성되었습니다.",
         path: promptPath,
         attachments: savedFiles,
+        generatedFiles: generatedFiles,
       };
     } catch (error) {
       if (error instanceof Error) {
@@ -110,13 +116,14 @@ export class ComponentService {
     return `
 ${dto.defaultPrompt}
 
-# Figma URL:
-${dto.figmaUrl}
+${dto.figmaUrl ? `# Figma URL:\n${dto.figmaUrl}\n` : ""}
+${dto.figmaApiResponse ? `# Figma 디자인 정보:\n${dto.figmaApiResponse}\n` : ""}
+   
 
 ${dto.description ? `# 컴포넌트 설명:\n${dto.description}\n` : ""}
 
 ${dto.extractedText ? `# 보충 설명:\n${dto.extractedText}\n` : ""}
-    `.trim();
+ `.trim();
   }
 
   private resolvePath(filePath: string, fileName: string): string {
