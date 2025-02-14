@@ -6,12 +6,14 @@ export interface CreateComponentDto {
   defaultPrompt: string;
   files?: File[];
   extractedText?: string;
+  figmaApiResponse?: string;
 }
 
 export interface ComponentResponse {
   message: string;
   path: string;
   attachments: string[];
+  generatedFiles?: string[];
 }
 
 export interface CrawlResponse {
