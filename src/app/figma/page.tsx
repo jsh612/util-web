@@ -162,20 +162,59 @@ export default function FigmaPage() {
 
     try {
       const zip = new JSZip();
+      const componentName = result.path.split("/").slice(-2)[0];
+      const componentFolder = zip.folder(componentName);
+
+      if (!componentFolder) {
+        throw new Error("ZIP 파일 생성 중 오류가 발생했습니다.");
+      }
 
       // 프롬프트 파일 추가
-      const promptResponse = await fetch(result.path);
+      const promptResponse = await fetch(
+        `/api/v1/files?path=${encodeURIComponent(result.path)}`
+      );
+      if (!promptResponse.ok) {
+        throw new Error("프롬프트 파일을 불러올 수 없습니다.");
+      }
       const promptBlob = await promptResponse.blob();
-      const componentName = result.path.split("/").slice(-2)[0];
-      zip.file(`${componentName}/prompt.txt`, promptBlob);
+      componentFolder.file("prompt.txt", promptBlob);
 
       // 첨부 파일 추가
-      if (result.attachments.length > 0) {
+      if (result.attachments && result.attachments.length > 0) {
+        const attachmentsFolder = componentFolder.folder("attachments");
+        if (!attachmentsFolder) {
+          throw new Error("첨부 파일 폴더 생성 중 오류가 발생했습니다.");
+        }
+
         for (const filePath of result.attachments) {
-          const response = await fetch(filePath);
+          const response = await fetch(
+            `/api/v1/files?path=${encodeURIComponent(filePath)}`
+          );
+          if (!response.ok) {
+            console.error(`첨부 파일을 불러올 수 없습니다: ${filePath}`);
+            continue;
+          }
           const blob = await response.blob();
           const fileName = filePath.split("/").pop() || "";
-          zip.file(`${componentName}/attachments/${fileName}`, blob);
+          attachmentsFolder.file(fileName, blob);
+        }
+      }
+
+      // 생성된 파일 추가
+      if (result.generatedFiles && result.generatedFiles.length > 0) {
+        for (const filePath of result.generatedFiles) {
+          const response = await fetch(
+            `/api/v1/files?path=${encodeURIComponent(filePath)}`
+          );
+          if (!response.ok) {
+            console.error(`생성된 파일을 불러올 수 없습니다: ${filePath}`);
+            continue;
+          }
+          const blob = await response.blob();
+          const relativePath = filePath.split(`${componentName}/`)[1];
+          if (relativePath) {
+            componentFolder.file(relativePath, blob);
+          }
         }
       }
 
