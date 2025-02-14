@@ -2,55 +2,113 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 카페24 폰트 */
+@font-face {
+  font-family: "Cafe24Ssurround";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.woff")
+    format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Cafe24SsurroundAir";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24SsurroundAir.woff")
+    format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Cafe24Ohsquare";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202@1.0/Cafe24Ohsquareair.woff2")
+    format("woff2");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Cafe24Simplehae";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.1/Cafe24Simplehae.woff")
+    format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Cafe24Dangdanghae";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.2/Cafe24Dangdanghae.woff")
+    format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Cafe24Syongsyong";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.1/Cafe24Syongsyong.woff")
+    format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+
 @layer base {
   /* 폰트 패밀리 설정 */
   .font-pretendard {
     font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui,
-      Roboto, sans-serif;
+      sans-serif;
   }
 
   .font-noto-sans {
-    font-family: "Noto Sans KR", sans-serif;
+    font-family: var(--font-noto-sans), sans-serif;
   }
 
   .font-nanum-gothic {
-    font-family: "Nanum Gothic", sans-serif;
+    font-family: var(--font-nanum-gothic), sans-serif;
   }
 
   .font-nanum-myeongjo {
-    font-family: "Nanum Myeongjo", serif;
+    font-family: var(--font-nanum-myeongjo), serif;
   }
 
   .font-nanum-pen {
-    font-family: "Nanum Pen Script", cursive;
+    font-family: "NanumPen", cursive;
   }
 
   .font-nanum-brush {
-    font-family: "Nanum Brush Script", cursive;
-  }
-
-  .font-gmarket {
-    font-family: "GmarketSansMedium", sans-serif;
+    font-family: "NanumBrush", cursive;
   }
 
   .font-spoqa {
-    font-family: "SpoqaHanSansNeo", sans-serif;
+    font-family: "Spoqa Han Sans Neo", sans-serif;
   }
 
-  .font-maru {
-    font-family: "MaruBuri", serif;
+  .font-wanted {
+    font-family: "Wanted Sans Variable", sans-serif;
   }
 
-  .font-cafe24 {
+  /* 카페24 폰트 */
+  .font-cafe24-surround {
     font-family: "Cafe24Ssurround", sans-serif;
   }
 
-  .font-suite {
-    font-family: "SUITE", sans-serif;
+  .font-cafe24-surround-air {
+    font-family: "Cafe24SsurroundAir", sans-serif;
   }
 
-  .font-jamsil {
-    font-family: "TheJamsil", sans-serif;
+  .font-cafe24-ohsquare {
+    font-family: "Cafe24Ohsquare", sans-serif;
+  }
+
+  .font-cafe24-simplehae {
+    font-family: "Cafe24Simplehae", sans-serif;
+  }
+
+  .font-cafe24-dangdanghae {
+    font-family: "Cafe24Dangdanghae", sans-serif;
+  }
+
+  .font-cafe24-syongsyong {
+    font-family: "Cafe24Syongsyong", cursive;
   }
 }
 
