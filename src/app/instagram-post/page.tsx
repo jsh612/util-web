@@ -5,6 +5,7 @@ import {
   ColorModal,
   DefaultImageModal,
 } from "@/components/instagram-post/Modals";
+import ResetButton from "@/components/instagram-post/ResetButton";
 import ResultsSection from "@/components/instagram-post/ResultsSection";
 import StyleOptionsSection from "@/components/instagram-post/StyleOptionsSection";
 import SubmitButton from "@/components/instagram-post/SubmitButton";
@@ -74,7 +75,7 @@ export default function InstagramPost() {
     titleColor: "#ffffff",
     textColor: "#ffffff",
     bottomColor: "#ffffff",
-    fontFamily: "Arial",
+    fontFamily: "Cafe24Ssurround",
     instagramRatio: "square",
   });
 
@@ -380,7 +381,7 @@ export default function InstagramPost() {
           const url = URL.createObjectURL(blob);
 
           const newResult: TextResult = {
-            id: Date.now().toString() + Math.random(),
+            id: Date.now().toString(),
             preview: url,
             textOptions: { ...finalTextOptions },
           };
@@ -532,6 +533,37 @@ export default function InstagramPost() {
     setResults((prev) => prev.filter((result) => result.id !== id));
   };
 
+  const resetTextInputs = () => {
+    if (textOptions.textMode === "single") {
+      setTextOptions((prev) => ({
+        ...prev,
+        title: "",
+        content: "",
+        bottom: "",
+      }));
+    } else {
+      setTextInputs([{ title: "", content: "", bottom: "" }]);
+      setJsonInput(
+        '[\n  {\n    "title": "제목 (선택)",\n    "content": "본문 (선택)",\n    "bottom": "하단 텍스트 (선택)"\n  }\n]'
+      );
+      setJsonError(null);
+    }
+  };
+
+  const resetStyleOptions = () => {
+    setTextOptions((prev) => ({
+      ...prev,
+      fontFamily: "Cafe24Ssurround",
+      titleFontSize: 64,
+      textFontSize: 48,
+      bottomFontSize: 32,
+      titleColor: "#ffffff",
+      textColor: "#ffffff",
+      bottomColor: "#ffffff",
+      instagramRatio: "square",
+    }));
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <MainLayout>
@@ -578,23 +610,42 @@ export default function InstagramPost() {
               backgroundColors={Array.from(BACKGROUND_COLORS)}
             />
 
-            <TextInputSection
-              textOptions={textOptions}
-              setTextOptions={setTextOptions}
-              multipleTextMode={multipleTextMode}
-              setMultipleTextMode={setMultipleTextMode}
-              textInputs={textInputs}
-              setTextInputs={setTextInputs}
-              jsonInput={jsonInput}
-              setJsonInput={setJsonInput}
-              jsonError={jsonError}
-              setJsonError={setJsonError}
-            />
+            <div className="mb-8 p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-slate-200">
+                  텍스트 입력
+                </h2>
+                <ResetButton onClick={resetTextInputs} label="텍스트 초기화" />
+              </div>
+              <TextInputSection
+                textOptions={textOptions}
+                setTextOptions={setTextOptions}
+                multipleTextMode={multipleTextMode}
+                setMultipleTextMode={setMultipleTextMode}
+                textInputs={textInputs}
+                setTextInputs={setTextInputs}
+                jsonInput={jsonInput}
+                setJsonInput={setJsonInput}
+                jsonError={jsonError}
+                setJsonError={setJsonError}
+              />
+            </div>
 
-            <StyleOptionsSection
-              textOptions={textOptions}
-              setTextOptions={setTextOptions}
-            />
+            <div className="mb-8 p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-slate-200">
+                  텍스트 스타일
+                </h2>
+                <ResetButton
+                  onClick={resetStyleOptions}
+                  label="스타일 초기화"
+                />
+              </div>
+              <StyleOptionsSection
+                textOptions={textOptions}
+                setTextOptions={setTextOptions}
+              />
+            </div>
 
             <div className="flex justify-center mt-6">
               <SubmitButton
