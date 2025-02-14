@@ -5,6 +5,7 @@ import {
   ColorModal,
   DefaultImageModal,
 } from "@/components/instagram-post/Modals";
+import ResetButton from "@/components/instagram-post/ResetButton";
 import ResultsSection from "@/components/instagram-post/ResultsSection";
 import StyleOptionsSection from "@/components/instagram-post/StyleOptionsSection";
 import SubmitButton from "@/components/instagram-post/SubmitButton";
@@ -74,7 +75,7 @@ export default function InstagramPost() {
     titleColor: "#ffffff",
     textColor: "#ffffff",
     bottomColor: "#ffffff",
-    fontFamily: "Arial",
+    fontFamily: "Cafe24Ssurround",
     instagramRatio: "square",
   });
 
@@ -271,84 +272,6 @@ export default function InstagramPost() {
     throw new Error("배경 이미지 생성에 실패했습니다.");
   };
 
-  const adjustTextOptions = (options: ImageTextOptions): ImageTextOptions => {
-    const adjusted = { ...options };
-
-    // 이미지 크기 기준 설정 (1080px 기준, 좌우 여백 90px)
-    const maxWidth = 900;
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    if (!ctx) return adjusted;
-
-    // 텍스트 줄바꿈 처리 함수
-    const wrapText = (text: string, fontSize: number, fontFamily: string) => {
-      ctx.font = `${fontSize}px ${fontFamily}`;
-      const words = text.split(/(?<=[\s\.,!?])/); // 공백, 마침표, 쉼표, 느낌표, 물음표 뒤에서 분리
-      const lines = [];
-      let currentLine = "";
-      let currentWidth = 0;
-
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i];
-        const wordWidth = ctx.measureText(word).width;
-
-        // 현재 줄이 비어있는 경우
-        if (currentLine === "") {
-          currentLine = word;
-          currentWidth = wordWidth;
-          continue;
-        }
-
-        // 현재 줄에 단어를 추가했을 때 최대 너비를 초과하는 경우
-        if (currentWidth + wordWidth > maxWidth) {
-          lines.push(currentLine.trim());
-          currentLine = word;
-          currentWidth = wordWidth;
-        } else {
-          currentLine += word;
-          currentWidth += wordWidth;
-        }
-      }
-
-      // 마지막 줄 처리
-      if (currentLine) {
-        lines.push(currentLine.trim());
-      }
-
-      return lines.join("\n");
-    };
-
-    // 제목 텍스트 줄바꿈 처리
-    if (adjusted.title) {
-      adjusted.title = wrapText(
-        adjusted.title,
-        adjusted.titleFontSize || 64,
-        adjusted.fontFamily || "Arial"
-      );
-    }
-
-    // 본문 텍스트 줄바꿈 처리
-    if (adjusted.content) {
-      adjusted.content = wrapText(
-        adjusted.content,
-        adjusted.textFontSize || 48,
-        adjusted.fontFamily || "Arial"
-      );
-    }
-
-    // 하단 텍스트 줄바꿈 처리
-    if (adjusted.bottom) {
-      adjusted.bottom = wrapText(
-        adjusted.bottom,
-        adjusted.bottomFontSize || 32,
-        adjusted.fontFamily || "Arial"
-      );
-    }
-
-    return adjusted;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -432,20 +355,13 @@ export default function InstagramPost() {
         );
 
         for (const textInput of validTextInputs) {
-          const finalTextOptions = adjustTextOptions({
-            textMode: "single",
-            title: textInput.title || "",
-            content: textInput.content || "",
-            bottom: textInput.bottom || "",
-            titleFontSize: textOptions.titleFontSize,
-            textFontSize: textOptions.textFontSize,
-            bottomFontSize: textOptions.bottomFontSize,
-            titleColor: textOptions.titleColor,
-            textColor: textOptions.textColor,
-            bottomColor: textOptions.bottomColor,
-            fontFamily: textOptions.fontFamily,
-            instagramRatio: textOptions.instagramRatio,
-          });
+          const finalTextOptions: ImageTextOptions = {
+            ...textOptions,
+            textMode: "single" as const,
+            title: textInput.title?.replace(/\\n/g, "\n") || "",
+            content: textInput.content?.replace(/\\n/g, "\n") || "",
+            bottom: textInput.bottom?.replace(/\\n/g, "\n") || "",
+          };
 
           const formData = new FormData();
           formData.append("imageFile", fileToUse);
@@ -465,17 +381,17 @@ export default function InstagramPost() {
           const url = URL.createObjectURL(blob);
 
           const newResult: TextResult = {
-            id: Date.now().toString() + Math.random(),
+            id: Date.now().toString(),
             preview: url,
             textOptions: { ...finalTextOptions },
           };
           setResults((prev) => [...prev, newResult]);
         }
       } else {
-        const finalTextOptions = adjustTextOptions({
+        const finalTextOptions: ImageTextOptions = {
           ...textOptions,
           textArray: undefined,
-        });
+        };
 
         const formData = new FormData();
         formData.append("imageFile", fileToUse);
@@ -617,6 +533,37 @@ export default function InstagramPost() {
     setResults((prev) => prev.filter((result) => result.id !== id));
   };
 
+  const resetTextInputs = () => {
+    if (textOptions.textMode === "single") {
+      setTextOptions((prev) => ({
+        ...prev,
+        title: "",
+        content: "",
+        bottom: "",
+      }));
+    } else {
+      setTextInputs([{ title: "", content: "", bottom: "" }]);
+      setJsonInput(
+        '[\n  {\n    "title": "제목 (선택)",\n    "content": "본문 (선택)",\n    "bottom": "하단 텍스트 (선택)"\n  }\n]'
+      );
+      setJsonError(null);
+    }
+  };
+
+  const resetStyleOptions = () => {
+    setTextOptions((prev) => ({
+      ...prev,
+      fontFamily: "Cafe24Ssurround",
+      titleFontSize: 64,
+      textFontSize: 48,
+      bottomFontSize: 32,
+      titleColor: "#ffffff",
+      textColor: "#ffffff",
+      bottomColor: "#ffffff",
+      instagramRatio: "square",
+    }));
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <MainLayout>
@@ -663,23 +610,42 @@ export default function InstagramPost() {
               backgroundColors={Array.from(BACKGROUND_COLORS)}
             />
 
-            <TextInputSection
-              textOptions={textOptions}
-              setTextOptions={setTextOptions}
-              multipleTextMode={multipleTextMode}
-              setMultipleTextMode={setMultipleTextMode}
-              textInputs={textInputs}
-              setTextInputs={setTextInputs}
-              jsonInput={jsonInput}
-              setJsonInput={setJsonInput}
-              jsonError={jsonError}
-              setJsonError={setJsonError}
-            />
+            <div className="mb-8 p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-slate-200">
+                  텍스트 입력
+                </h2>
+                <ResetButton onClick={resetTextInputs} label="텍스트 초기화" />
+              </div>
+              <TextInputSection
+                textOptions={textOptions}
+                setTextOptions={setTextOptions}
+                multipleTextMode={multipleTextMode}
+                setMultipleTextMode={setMultipleTextMode}
+                textInputs={textInputs}
+                setTextInputs={setTextInputs}
+                jsonInput={jsonInput}
+                setJsonInput={setJsonInput}
+                jsonError={jsonError}
+                setJsonError={setJsonError}
+              />
+            </div>
 
-            <StyleOptionsSection
-              textOptions={textOptions}
-              setTextOptions={setTextOptions}
-            />
+            <div className="mb-8 p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-slate-200">
+                  텍스트 스타일
+                </h2>
+                <ResetButton
+                  onClick={resetStyleOptions}
+                  label="스타일 초기화"
+                />
+              </div>
+              <StyleOptionsSection
+                textOptions={textOptions}
+                setTextOptions={setTextOptions}
+              />
+            </div>
 
             <div className="flex justify-center mt-6">
               <SubmitButton
