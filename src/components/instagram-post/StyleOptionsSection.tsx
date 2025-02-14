@@ -1,7 +1,7 @@
 "use client";
 
 import { ImageTextOptions } from "@/types/api.types";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface StyleOptionsSectionProps {
   textOptions: ImageTextOptions;
@@ -9,27 +9,91 @@ interface StyleOptionsSectionProps {
 }
 
 const FONT_FAMILIES = [
-  { value: "Pretendard", label: "프리텐다드" },
-  { value: "Noto Sans KR", label: "노토 산스" },
-  { value: "Nanum Gothic", label: "나눔고딕" },
-  { value: "Nanum Myeongjo", label: "나눔명조" },
-  { value: "Nanum Pen Script", label: "나눔손글씨 펜" },
-  { value: "Nanum Brush Script", label: "나눔손글씨 붓" },
-  { value: "GmarketSansMedium", label: "지마켓산스" },
-  { value: "SpoqaHanSansNeo", label: "스포카 한 산스" },
-  { value: "MaruBuri", label: "마루 부리" },
-  { value: "Cafe24Ssurround", label: "카페24 써라운드" },
-  { value: "SUITE", label: "스위트" },
-  { value: "TheJamsil", label: "더 잠실" },
+  { value: "Pretendard", label: "프리텐다드", family: "Pretendard" },
+  {
+    value: "Noto Sans KR",
+    label: "노토 산스",
+    family: "var(--font-noto-sans)",
+  },
+  {
+    value: "Nanum Gothic",
+    label: "나눔고딕",
+    family: "var(--font-nanum-gothic)",
+  },
+  {
+    value: "Nanum Myeongjo",
+    label: "나눔명조",
+    family: "var(--font-nanum-myeongjo)",
+  },
+  { value: "NanumPen", label: "나눔손글씨 펜", family: "NanumPen" },
+  { value: "NanumBrush", label: "나눔손글씨 붓", family: "NanumBrush" },
+  {
+    value: "Spoqa Han Sans Neo",
+    label: "스포카 한 산스",
+    family: "Spoqa Han Sans Neo",
+  },
+  {
+    value: "Wanted Sans Variable",
+    label: "원티드 산스",
+    family: "Wanted Sans Variable",
+  },
+  {
+    value: "Cafe24Ssurround",
+    label: "카페24 써라운드",
+    family: "Cafe24Ssurround",
+  },
+  {
+    value: "Cafe24SsurroundAir",
+    label: "카페24 써라운드 에어",
+    family: "Cafe24SsurroundAir",
+  },
+  {
+    value: "Cafe24Ohsquare",
+    label: "카페24 아네모네",
+    family: "Cafe24Ohsquare",
+  },
+  {
+    value: "Cafe24Simplehae",
+    label: "카페24 심플해",
+    family: "Cafe24Simplehae",
+  },
+  {
+    value: "Cafe24Dangdanghae",
+    label: "카페24 당당해",
+    family: "Cafe24Dangdanghae",
+  },
+  {
+    value: "Cafe24Syongsyong",
+    label: "카페24 숑숑",
+    family: "Cafe24Syongsyong",
+  },
 ] as const;
 
 export default function StyleOptionsSection({
   textOptions,
   setTextOptions,
 }: StyleOptionsSectionProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const titleColorInputRef = useRef<HTMLInputElement>(null);
   const textColorInputRef = useRef<HTMLInputElement>(null);
   const bottomColorInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleTitleColorClick = () => {
     titleColorInputRef.current?.click();
@@ -375,19 +439,64 @@ export default function StyleOptionsSection({
           <label className="block text-sm font-medium text-slate-200">
             폰트
           </label>
-          <select
-            value={textOptions.fontFamily}
-            onChange={(e) =>
-              setTextOptions({ ...textOptions, fontFamily: e.target.value })
-            }
-            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
-          >
-            {FONT_FAMILIES.map((font) => (
-              <option key={font.value} value={font.value}>
-                {font.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsOpen(!isOpen)}
+              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 flex items-center justify-between"
+              style={{
+                fontFamily: FONT_FAMILIES.find(
+                  (f) => f.value === textOptions.fontFamily
+                )?.family,
+              }}
+            >
+              <span>
+                {FONT_FAMILIES.find((f) => f.value === textOptions.fontFamily)
+                  ?.label || "폰트 선택"}
+              </span>
+              <svg
+                className={`w-5 h-5 transition-transform ${
+                  isOpen ? "transform rotate-180" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {isOpen && (
+              <div className="absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-60 overflow-auto">
+                {FONT_FAMILIES.map((font) => (
+                  <button
+                    key={font.value}
+                    type="button"
+                    onClick={() => {
+                      setTextOptions({
+                        ...textOptions,
+                        fontFamily: font.value,
+                      });
+                      setIsOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left hover:bg-slate-600/50 ${
+                      textOptions.fontFamily === font.value
+                        ? "bg-slate-600"
+                        : ""
+                    }`}
+                    style={{ fontFamily: font.family }}
+                  >
+                    {font.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

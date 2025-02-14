@@ -1,5 +1,27 @@
 import type { Metadata } from "next";
+import { Nanum_Gothic, Nanum_Myeongjo, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
+
+const notoSansKr = Noto_Sans_KR({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-noto-sans",
+  preload: true,
+});
+
+const nanumGothic = Nanum_Gothic({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-nanum-gothic",
+  preload: true,
+});
+
+const nanumMyeongjo = Nanum_Myeongjo({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-nanum-myeongjo",
+  preload: true,
+});
 
 export const metadata: Metadata = {
   title: "유틸리티 웹",
@@ -28,14 +50,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
+    <html
+      lang="ko"
+      className={`${notoSansKr.variable} ${nanumGothic.variable} ${nanumMyeongjo.variable}`}
+    >
       <head>
-        {/* Google Fonts */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&family=Nanum+Brush+Script&display=swap"
-          rel="stylesheet"
-        />
-
         {/* 프리텐다드 */}
         <link
           rel="stylesheet"
@@ -43,40 +62,30 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
         />
 
-        {/* 지마켓산스 */}
-        <link
-          href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff"
-          rel="stylesheet"
-        />
-
         {/* 스포카 한 산스 */}
         <link
           href="https://spoqa.github.io/spoqa-han-sans/css/SpoqaHanSansNeo.css"
           rel="stylesheet"
+          as="style"
         />
 
-        {/* 마루 부리 */}
+        {/* 나눔 스크립트 폰트 */}
         <link
-          href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.0/MaruBuri-Regular.woff"
+          href="https://hangeul.pstatic.net/hangeul_static/css/nanum-pen.css"
           rel="stylesheet"
+          as="style"
+        />
+        <link
+          href="https://hangeul.pstatic.net/hangeul_static/css/nanum-brush.css"
+          rel="stylesheet"
+          as="style"
         />
 
-        {/* 카페24 써라운드 */}
+        {/* 기타 웹폰트 */}
         <link
-          href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.woff"
           rel="stylesheet"
-        />
-
-        {/* 스위트 */}
-        <link
-          href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/SUITE-Regular.woff2"
-          rel="stylesheet"
-        />
-
-        {/* 더 잠실 */}
-        <link
-          href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/TheJamsil5Bold.woff2"
-          rel="stylesheet"
+          as="style"
+          href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.1/packages/wanted-sans/fonts/webfonts/variable/complete/WantedSansVariable.min.css"
         />
       </head>
       <body className="bg-slate-800 text-slate-200">{children}</body>

@@ -1,6 +1,154 @@
 import { ImageTextOptions } from "@/types/api.types";
 import { NextRequest, NextResponse } from "next/server";
+import puppeteer from "puppeteer";
 import sharp from "sharp";
+
+// HTML 템플릿 생성 함수
+async function generateHtml(
+  width: number,
+  height: number,
+  textOptions: ImageTextOptions,
+  backgroundColor?: string
+): Promise<string> {
+  const titleY = Math.floor(height * 0.2);
+  const titleLineHeight = (textOptions.titleFontSize ?? 64) * 1.2;
+  const textLineHeight = (textOptions.textFontSize ?? 48) * 1.2;
+  const spaceBetweenTitleAndText = Math.max(titleLineHeight, textLineHeight);
+
+  let textY: number;
+  if (textOptions.title?.trim()) {
+    const titleLines = textOptions.title.split("\n").length;
+    textY = titleY + titleLines * titleLineHeight + spaceBetweenTitleAndText;
+  } else {
+    textY = Math.floor(height * 0.4);
+  }
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          @font-face {
+            font-family: 'Cafe24Syongsyong';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.1/Cafe24Syongsyong.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+          }
+          @font-face {
+            font-family: 'Cafe24Ssurround';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+          }
+          @font-face {
+            font-family: 'Cafe24SsurroundAir';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24SsurroundAir.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+          }
+          @font-face {
+            font-family: 'Cafe24Ohsquare';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202@1.0/Cafe24Ohsquareair.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+          }
+          @font-face {
+            font-family: 'Cafe24Simplehae';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.1/Cafe24Simplehae.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+          }
+          @font-face {
+            font-family: 'Cafe24Dangdanghae';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.2/Cafe24Dangdanghae.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+          }
+
+          body {
+            margin: 0;
+            padding: 0;
+            width: ${width}px;
+            height: ${height}px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: ${backgroundColor || "transparent"};
+            position: relative;
+          }
+
+          .text-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+
+          .title {
+            font-family: "${textOptions.fontFamily}", Arial;
+            font-size: ${textOptions.titleFontSize ?? 64}px;
+            color: ${textOptions.titleColor ?? "#ffffff"};
+            text-align: center;
+            font-weight: bold;
+            white-space: pre-line;
+            position: absolute;
+            top: ${titleY}px;
+            width: 100%;
+            line-height: 1.2;
+          }
+
+          .content {
+            font-family: "${textOptions.fontFamily}", Arial;
+            font-size: ${textOptions.textFontSize ?? 48}px;
+            color: ${textOptions.textColor ?? "#ffffff"};
+            text-align: center;
+            white-space: pre-line;
+            position: absolute;
+            top: ${textY}px;
+            width: 100%;
+            line-height: 1.2;
+          }
+
+          .bottom {
+            font-family: "${textOptions.fontFamily}", Arial;
+            font-size: ${textOptions.bottomFontSize ?? 32}px;
+            color: ${textOptions.bottomColor ?? "#ffffff"};
+            text-align: center;
+            white-space: pre-line;
+            position: absolute;
+            bottom: 50px;
+            width: 100%;
+            line-height: 1.2;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="text-container">
+          ${
+            textOptions.title
+              ? `<div class="title">${textOptions.title}</div>`
+              : ""
+          }
+          ${
+            textOptions.content
+              ? `<div class="content">${textOptions.content}</div>`
+              : ""
+          }
+          ${
+            textOptions.bottom
+              ? `<div class="bottom">${textOptions.bottom}</div>`
+              : ""
+          }
+        </div>
+      </body>
+    </html>
+  `;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,17 +182,6 @@ export async function POST(request: NextRequest) {
 
     const buffer = Buffer.from(await imageFile.arrayBuffer());
 
-    // 원본 이미지 검증
-    try {
-      await sharp(buffer).metadata();
-    } catch (error) {
-      console.error("Error processing image:", error);
-      return NextResponse.json(
-        { error: "이미지 형식을 처리할 수 없습니다." },
-        { status: 400 }
-      );
-    }
-
     // 인스타그램 비율에 따른 크기 조정
     const targetWidth = 1080;
     let targetHeight = 1080;
@@ -68,122 +205,72 @@ export async function POST(request: NextRequest) {
       })
       .toBuffer();
 
-    let finalImage;
+    // 고해상도 렌더링을 위한 스케일 팩터
+    const scaleFactor = 2;
+    const renderWidth = targetWidth * scaleFactor;
+    const renderHeight = targetHeight * scaleFactor;
 
-    if (textOptions.textMode === "single") {
-      const titleY = Math.floor(targetHeight * 0.2);
-      const titleLineHeight = (textOptions.titleFontSize ?? 64) * 1.2;
-      const textLineHeight = (textOptions.textFontSize ?? 48) * 1.2;
-      const spaceBetweenTitleAndText = Math.max(
-        titleLineHeight,
-        textLineHeight
-      );
+    // Puppeteer 브라우저 실행
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    const page = await browser.newPage();
 
-      let textY: number;
-      if (textOptions.title?.trim()) {
-        const titleLines = textOptions.title.split("\n").length;
-        textY =
-          titleY + titleLines * titleLineHeight + spaceBetweenTitleAndText;
-      } else {
-        textY = Math.floor(targetHeight * 0.4);
-      }
+    // 뷰포트 크기 설정 (고해상도)
+    await page.setViewport({
+      width: renderWidth,
+      height: renderHeight,
+      deviceScaleFactor: 1,
+    });
 
-      const svgText = generateSvgText(
-        targetWidth,
-        targetHeight,
-        textOptions.title || "",
-        textOptions.content || "",
-        titleY,
-        textY,
-        textOptions
-      );
+    // 폰트 크기를 스케일 팩터에 맞게 조정한 옵션 생성
+    const scaledTextOptions = {
+      ...textOptions,
+      titleFontSize: (textOptions.titleFontSize ?? 64) * scaleFactor,
+      textFontSize: (textOptions.textFontSize ?? 48) * scaleFactor,
+      bottomFontSize: (textOptions.bottomFontSize ?? 32) * scaleFactor,
+    };
 
-      // SVG 텍스트를 Buffer로 변환
-      const svgBuffer = Buffer.from(
-        `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-        ${svgText}`
-      );
+    // HTML 생성 및 설정 (이제 async 함수)
+    const html = await generateHtml(
+      renderWidth,
+      renderHeight,
+      scaledTextOptions
+    );
+    await page.setContent(html);
 
-      finalImage = await sharp(resizedImage)
-        .composite([
-          {
-            input: svgBuffer,
-            top: 0,
-            left: 0,
-          },
-        ])
-        .jpeg()
-        .toBuffer();
-    } else {
-      // 다중 텍스트 모드
-      if (!textOptions.textArray?.length) {
-        return NextResponse.json(
-          { error: "텍스트 배열이 필요합니다." },
-          { status: 400 }
-        );
-      }
+    // 폰트 로딩 대기 (시간 추가)
+    await page.waitForFunction(() => document.fonts.ready);
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // 폰트 로딩을 위한 추가 대기 시간
 
-      // 각 텍스트 세트의 높이 계산
-      const setHeight = targetHeight / textOptions.textArray.length;
-      const svgTexts = textOptions.textArray.map((textSet, index) => {
-        const titleY = Math.floor(setHeight * index + setHeight * 0.2);
-        const titleLineHeight = (textOptions.titleFontSize ?? 64) * 1.2;
-        const textLineHeight = (textOptions.textFontSize ?? 48) * 1.2;
-        const spaceBetweenTitleAndText = Math.max(
-          titleLineHeight,
-          textLineHeight
-        );
+    // 텍스트 레이어 스크린샷
+    const textLayer = await page.screenshot({
+      omitBackground: true,
+      type: "png",
+    });
 
-        const textY = titleY + titleLineHeight + spaceBetweenTitleAndText;
+    await browser.close();
 
-        return generateSvgText(
-          targetWidth,
-          targetHeight,
-          textSet.title,
-          textSet.content,
-          titleY,
-          textY,
-          {
-            ...textOptions,
-            bottom: textSet.bottom,
-          }
-        );
-      });
+    // 텍스트 레이어 크기 조정
+    const resizedTextLayer = await sharp(textLayer)
+      .resize(targetWidth, targetHeight, {
+        fit: "contain",
+        position: "center",
+      })
+      .toBuffer();
 
-      // SVG 텍스트를 Buffer로 변환
-      const svgBuffer = Buffer.from(
-        `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-        <svg width="${targetWidth}" height="${targetHeight}" xmlns="http://www.w3.org/2000/svg">
-          <style>
-            .title { 
-              font-family: ${textOptions.fontFamily ?? "Arial"};
-              font-size: ${textOptions.titleFontSize ?? 64}px;
-              fill: ${textOptions.titleColor ?? "#ffffff"};
-              text-anchor: middle;
-              font-weight: bold;
-            }
-            .text { 
-              font-family: ${textOptions.fontFamily ?? "Arial"};
-              font-size: ${textOptions.textFontSize ?? 48}px;
-              fill: ${textOptions.textColor ?? "#ffffff"};
-              text-anchor: middle;
-            }
-          </style>
-          ${svgTexts.join("")}
-        </svg>`
-      );
-
-      finalImage = await sharp(resizedImage)
-        .composite([
-          {
-            input: svgBuffer,
-            top: 0,
-            left: 0,
-          },
-        ])
-        .jpeg()
-        .toBuffer();
-    }
+    // 이미지 합성
+    const finalImage = await sharp(resizedImage)
+      .composite([
+        {
+          input: resizedTextLayer,
+          top: 0,
+          left: 0,
+        },
+      ])
+      .jpeg()
+      .toBuffer();
 
     return new NextResponse(finalImage, {
       headers: {
@@ -197,100 +284,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// XML 특수 문자 이스케이프 함수 추가
-function escapeXml(unsafe: string): string {
-  return unsafe.replace(/[<>&'"]/g, (c) => {
-    switch (c) {
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case "&":
-        return "&amp;";
-      case "'":
-        return "&apos;";
-      case '"':
-        return "&quot;";
-      default:
-        return c;
-    }
-  });
-}
-
-function generateSvgText(
-  width: number,
-  height: number,
-  title: string,
-  content: string,
-  titleY: number,
-  textY: number,
-  options: ImageTextOptions
-): string {
-  const titleLines = title?.split("\n") || [];
-  const contentLines = content?.split("\n") || [];
-  const bottomLines = options.bottom?.split("\n") || [];
-  const titleLineHeight = (options.titleFontSize ?? 64) * 1.2;
-  const textLineHeight = (options.textFontSize ?? 48) * 1.2;
-  const bottomLineHeight = (options.bottomFontSize ?? 32) * 1.2;
-
-  return `
-    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <style>
-        .title { 
-          font-family: ${options.fontFamily ?? "Arial"};
-          font-size: ${options.titleFontSize ?? 64}px;
-          fill: ${options.titleColor ?? "#ffffff"};
-          text-anchor: middle;
-          font-weight: bold;
-        }
-        .text { 
-          font-family: ${options.fontFamily ?? "Arial"};
-          font-size: ${options.textFontSize ?? 48}px;
-          fill: ${options.textColor ?? "#ffffff"};
-          text-anchor: middle;
-        }
-        .bottom {
-          font-family: ${options.fontFamily ?? "Arial"};
-          font-size: ${options.bottomFontSize ?? 32}px;
-          fill: ${options.bottomColor ?? "#ffffff"};
-          text-anchor: middle;
-        }
-      </style>
-      ${titleLines
-        .map(
-          (line, i) => `
-          <text
-            x="${width / 2}"
-            y="${titleY + i * titleLineHeight}"
-            class="title"
-          >${escapeXml(line)}</text>
-      `
-        )
-        .join("")}
-      ${contentLines
-        .map(
-          (line, i) => `
-          <text
-            x="${width / 2}"
-            y="${textY + i * textLineHeight}"
-            class="text"
-          >${escapeXml(line)}</text>
-      `
-        )
-        .join("")}
-      ${bottomLines
-        .map(
-          (line, i) => `
-          <text
-            x="${width / 2}"
-            y="${height - ((bottomLines.length - i) * bottomLineHeight + 50)}"
-            class="bottom"
-          >${escapeXml(line)}</text>
-      `
-        )
-        .join("")}
-    </svg>
-  `;
 }
