@@ -6,7 +6,8 @@
     "dev": "next dev -p 4000",
     "build": "next build",
     "start": "next start -p 4000",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check:arch": "node -p \"process.arch + ' / Node ' + process.version\""
   },
   "dependencies": {
     "@types/sharp": "^0.32.0",
