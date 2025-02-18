@@ -418,23 +418,6 @@ export default function InstagramPost() {
         setResults((prev) => [...prev, newResult]);
       }
 
-      if (textOptions.textMode === "single") {
-        setTextOptions((prev) => ({
-          ...prev,
-          title: "",
-          content: "",
-          bottom: "",
-        }));
-      } else {
-        if (multipleTextMode === "ui") {
-          setTextInputs([{ title: "", content: "", bottom: "" }]);
-        } else {
-          setJsonInput(
-            '[\n  {\n    "title": "제목 (선택)",\n    "content": "본문 (선택)",\n    "bottom": "하단 텍스트 (선택)"\n  }\n]'
-          );
-        }
-      }
-
       setTimeout(() => {
         const resultSection = document.querySelector(".results-section");
         if (resultSection) {
