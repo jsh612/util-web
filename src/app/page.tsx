@@ -56,7 +56,7 @@ const tools = [
   {
     title: "뉴스 크롤러",
     description:
-      "네이버 뉴스와 CNN의 기사 내용을 자동으로 추출하고 정리합니다.",
+      "네이버 뉴스, CNN, AP 뉴스의 기사 내용을 자동으로 추출하고 정리합니다.",
     icon: (
       <svg
         className="w-8 h-8"
