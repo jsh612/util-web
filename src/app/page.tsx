@@ -6,6 +6,28 @@ import Link from "next/link";
 
 const tools = [
   {
+    title: "Gemini 챗봇",
+    description:
+      "Google의 Gemini AI 모델을 활용한 채팅 인터페이스로 다양한 질문에 답변을 얻을 수 있습니다.",
+    icon: (
+      <svg
+        className="w-8 h-8"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+        />
+      </svg>
+    ),
+    path: PAGE_ROUTES.GEMINI_CHAT,
+    features: ["자연어 대화", "텍스트 기반 질의응답", "채팅 인터페이스"],
+  },
+  {
     title: "인스타그램 포스트 에디터",
     description:
       "인스타그램에 최적화된 이미지와 텍스트를 조합하여 멋진 포스트를 만들어보세요.",
