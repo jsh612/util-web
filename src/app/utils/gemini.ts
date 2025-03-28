@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { ChatSession, GoogleGenerativeAI } from "@google/generative-ai";
 
 // Gemini API 키 설정
 const API_KEY = process.env.GEMINI_API_KEY || "";
@@ -27,7 +27,8 @@ export const getGeminiModel = () => {
 interface UserChat {
   history: string[];
   lastActive: number;
-  documentContext: string; // PDF에서 추출한 컨텍스트, 옵션이 아님
+  documentContext: string;
+  chatInstance?: ChatSession; // Gemini 채팅 인스턴스 저장
 }
 
 // 사용자 채팅 기록 관리 (24시간 후 만료)
@@ -209,7 +210,50 @@ export const getDocumentContext = (username: string) => {
   };
 };
 
-// 텍스트 기반 채팅 메시지 생성
+// 사용자별 채팅 인스턴스 초기화 함수 추가
+const initializeChatInstance = async (
+  username: string,
+  documentText: string
+) => {
+  try {
+    const model = getGeminiModel();
+    const generationConfig = {
+      temperature: 0.2,
+      maxOutputTokens: 1000,
+      topK: 40,
+      topP: 0.8,
+    };
+
+    let systemPrompt = `
+    당신은 웹 사이트의 Q&A 챗봇입니다. 다음 규칙을 반드시 따라주세요:
+    1. 첨부된 파일 내용과 관련된 질문에만 답변하세요.
+    2. 질문/답변 외의 요청에는 "해당 요청은 처리할 수 없습니다."라고 응답하세요.
+    3. 첨부된 문서에 없는 내용이라면 "해당 내용은 문서에 없습니다. 담당자에게 문의하세요."라고 안내하세요.
+    4. 현재 질문은 "${username}" 사용자의 질문입니다. 이 사용자와의 대화 기록만 고려하세요.
+    5. 간결하고 명확하게 답변하세요.
+    6. 사용자의 매 질문은 기억해두고, 다음 질문에 참고하여 답변하세요.
+    `;
+
+    if (documentText && documentText.length > 0) {
+      systemPrompt += `\n\n==== 문서 컨텍스트 시작 ====\n${documentText}\n==== 문서 컨텍스트 끝 ====\n`;
+      systemPrompt += `\n위 문서 컨텍스트를 기반으로 질문에 답변하세요. 이 문서에서 찾을 수 없는 정보는 "해당 내용은 문서에 없습니다."라고 응답하세요.`;
+    }
+
+    const chat = model.startChat({
+      history: [],
+      generationConfig,
+    });
+
+    // 시스템 프롬프트로 초기화
+    await chat.sendMessage(systemPrompt);
+
+    return chat;
+  } catch (error) {
+    console.error("채팅 인스턴스 초기화 오류:", error);
+    return null;
+  }
+};
+
 export const generateChatResponse = async (messages: string[]) => {
   try {
     if (messages.length === 0) {
@@ -243,110 +287,46 @@ export const generateChatResponse = async (messages: string[]) => {
       userChats.set(username, {
         history: [],
         lastActive: Date.now(),
-        documentContext: "", // 빈 문서 컨텍스트로 초기화
+        documentContext: "",
       });
     }
 
     const userChat = userChats.get(username)!;
     userChat.lastActive = Date.now();
 
-    // 문서 컨텍스트 맵에서 직접 확인
-    let documentText = documentContexts.get(username) || "";
+    // 문서 컨텍스트 확인
+    const documentText = documentContexts.get(username) || "";
 
-    // documentContext 속성 확인 및 설정
-    if (
-      !documentText &&
-      userChat.documentContext &&
-      userChat.documentContext.length > 0
-    ) {
-      documentText = userChat.documentContext;
-      // 맵에 동기화
-      documentContexts.set(username, documentText);
-    } else if (documentText && documentText.length > 0) {
-      // 유저 채팅에 동기화
-      userChat.documentContext = documentText;
-    }
-
-    // 사용자의 이전 대화 기록 업데이트
-    if (messages.length > 1) {
-      // 사용자 채팅 기록에 최신 메시지만 추가
-      userChat.history = [...userChat.history, lastMessage];
-    } else {
-      // 첫 메시지인 경우
-      userChat.history = [lastMessage];
-    }
-
-    // 최대 10개의 최근 메시지만 유지
-    if (userChat.history.length > 10) {
-      userChat.history = userChat.history.slice(-10);
-    }
-
-    // 문서 컨텍스트 확인 - 맵에서 직접 확인
-    const hasDocumentContext = !!documentText && documentText.length > 10;
-
-    // 문서가 없는 경우 알림
-    if (!hasDocumentContext) {
-      return {
-        success: true,
-        data: "문서가 업로드되지 않았거나 초기화되지 않았습니다. 먼저 PDF 문서를 업로드하고 Gemini를 초기화해 주세요.",
-      };
+    // 채팅 인스턴스가 없으면 초기화
+    if (!userChat.chatInstance) {
+      const chatInstance = await initializeChatInstance(username, documentText);
+      if (!chatInstance) {
+        return {
+          success: false,
+          error: "채팅 인스턴스 초기화 실패",
+        };
+      }
+      userChat.chatInstance = chatInstance;
     }
 
     try {
-      const model = getGeminiModel();
-      const generationConfig = {
-        temperature: 0.2, // 응답의 일관성을 높이기 위해 온도를 낮게 설정
-        maxOutputTokens: 1000, // 응답 길이 제한
-        topK: 40, // 다양성 조절
-        topP: 0.8, // 응답의 예측가능성 조절
-      };
+      // 이전 대화 기록 없이 현재 메시지만 전송
+      const result = await userChat.chatInstance.sendMessage(lastMessage);
+      const response = await result.response;
+      const text = response.text();
 
-      const chat = model.startChat({
-        history: userChat.history.slice(0, -1).map((message, index) => ({
-          role: index % 2 === 0 ? "user" : "model",
-          parts: [{ text: message }],
-        })),
-        generationConfig,
-      });
-
-      // AI가 응답을 생성하기 전에 주요 안내사항 설정
-      let systemPrompt = `
-      당신은 웹 사이트의 Q&A 챗봇입니다. 다음 규칙을 반드시 따라주세요:
-      1. 첨부된 파일 내용과 관련된 질문에만 답변하세요.
-      2. 질문/답변 외의 요청에는 "해당 요청은 처리할 수 없습니다."라고 응답하세요.
-      3. 첨부된 문서에 없는 내용이라면 "해당 내용은 문서에 없습니다. 담당자에게 문의하세요."라고 안내하세요.
-      4. 현재 질문은 "${username}" 사용자의 질문입니다. 이 사용자와의 대화 기록만 고려하세요.
-      5. 간결하고 명확하게 답변하세요.
-      `;
-
-      // 문서 컨텍스트가 있는 경우 추가
-      if (hasDocumentContext) {
-        systemPrompt += `\n\n==== 문서 컨텍스트 시작 ====\n${documentText}\n==== 문서 컨텍스트 끝 ====\n`;
-        systemPrompt += `\n위 문서 컨텍스트를 기반으로 질문에 답변하세요. 이 문서에서 찾을 수 없는 정보는 "해당 내용은 문서에 없습니다."라고 응답하세요.`;
-      } else {
-        systemPrompt += `\n\n주의: 현재 업로드된 문서가 없습니다. "해당 내용은 문서에 없습니다. 담당자에게 문의하세요."라고 응답하세요.`;
+      // 대화 기록 업데이트
+      userChat.history.push(lastMessage);
+      if (userChat.history.length > 10) {
+        userChat.history = userChat.history.slice(-10);
       }
 
-      try {
-        // 프롬프트와 함께 메시지 전송
-        const result = await chat.sendMessage(
-          systemPrompt + "\n\n" + lastMessage
-        );
-        const response = await result.response;
-        const text = response.text();
-        return { success: true, data: text };
-      } catch (modelError) {
-        console.error("Gemini 모델 응답 오류:", modelError);
-        return {
-          success: false,
-          error: `Gemini 응답 생성 오류: ${String(modelError)}`,
-        };
-      }
-    } catch (chatError) {
-      console.error("채팅 인스턴스 생성 오류:", chatError);
+      return { success: true, data: text };
+    } catch (modelError) {
+      console.error("Gemini 모델 응답 오류:", modelError);
       return {
         success: false,
-        error: `채팅 세션 생성 오류: ${String(chatError)}`,
+        error: `Gemini 응답 생성 오류: ${String(modelError)}`,
       };
     }
   } catch (error) {
