@@ -25,79 +25,11 @@ export default function GeminiChatPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 메시지 목록이 업데이트될 때마다 스크롤을 맨 아래로 이동
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // 로컬 스토리지에서 사용자 이름 가져오기
-  useEffect(() => {
-    const savedUsername = localStorage.getItem("gemini_chat_username");
-    if (savedUsername) {
-      setUsername(savedUsername);
-      // 사용자 이름이 있으면 문서 상태 확인
-      checkDocumentStatus(savedUsername);
-    }
-
-    // 로컬 스토리지에서 문서 텍스트 복원
-    try {
-      const savedDocumentKey = localStorage.getItem("gemini_document_key");
-      if (savedDocumentKey) {
-        const savedDocumentText = localStorage.getItem(savedDocumentKey);
-        if (savedDocumentText) {
-          setDocumentText(savedDocumentText);
-          setDocumentStatus({
-            hasDocument: true,
-            textLength: savedDocumentText.length,
-            isInitialized: true,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("로컬 스토리지에서 문서 복원 오류:", error);
-    }
-  }, []);
+  const chatInputRef = useRef<HTMLInputElement>(null);
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newUsername = e.target.value;
     setUsername(newUsername);
-    localStorage.setItem("gemini_chat_username", newUsername);
-
-    if (newUsername) {
-      checkDocumentStatus(newUsername);
-    } else {
-      setDocumentStatus({
-        hasDocument: false,
-        textLength: 0,
-        isInitialized: false,
-      });
-      setSelectedPdf(null);
-    }
-  };
-
-  // 문서 상태 확인
-  const checkDocumentStatus = async (username: string) => {
-    try {
-      const response = await axios.get(
-        `/api/v1/gemini/document?username=${encodeURIComponent(username)}`
-      );
-      if (response.data.success) {
-        setDocumentStatus({
-          hasDocument: response.data.hasDocument,
-          textLength: response.data.textLength,
-          isInitialized: response.data.hasDocument, // 문서가 있으면 초기화 완료로 간주
-        });
-      }
-    } catch (error) {
-      console.error("문서 상태 확인 중 오류:", error);
-      // 오류가 발생했더라도 초기 상태 설정
-      setDocumentStatus({
-        hasDocument: false,
-        textLength: 0,
-        isInitialized: false,
-      });
-    }
   };
 
   // PDF 파일 선택 처리
@@ -106,6 +38,8 @@ export default function GeminiChatPage() {
       alert("PDF를 업로드하기 전에 사용자 이름을 입력하세요.");
       return;
     }
+
+    localStorage.setItem("gemini_chat_username", username);
 
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -147,7 +81,7 @@ export default function GeminiChatPage() {
       // 상태 메시지 추가
       const processingMessage: Message = {
         role: "bot",
-        content: `${selectedPdf.name} 파일을 처리하고 Gemini를 초기화하는 중입니다... 잠시만 기다려주세요.`,
+        content: `${selectedPdf.name} 파일을 처리하고 챗봇을 초기화하는 중입니다... 잠시만 기다려주세요.`,
       };
       setMessages((prevMessages) => [...prevMessages, processingMessage]);
 
@@ -186,7 +120,7 @@ export default function GeminiChatPage() {
           
 - 파일명: ${selectedPdf.name}
 - 추출된 텍스트: ${textLengthKB}KB (${textLengthMB}MB)
-- 상태: Gemini가 초기화되었습니다.
+- 상태: 챗봇 설정이 완료되었습니다.
 
 이제 문서 내용에 대해 질문할 수 있습니다.`,
         };
@@ -203,13 +137,13 @@ export default function GeminiChatPage() {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     } catch (error: unknown) {
-      console.error("Gemini 초기화 중 오류:", error);
+      console.error("챗봇 초기화 중 오류:", error);
 
       // 오류 메시지 상세화
       const errorMessage =
         error instanceof AxiosError && error.response?.data?.error
           ? error.response.data.error
-          : "Gemini 초기화 중 오류가 발생했습니다.";
+          : "챗봇 초기화 중 오류가 발생했습니다.";
 
       // 처리 중 메시지를 오류 메시지로 대체
       setMessages((prevMessages) => {
@@ -275,6 +209,12 @@ export default function GeminiChatPage() {
       ]);
     } finally {
       setIsLoading(false);
+      // 응답 완료 후 입력란으로 포커스 이동
+      setTimeout(() => {
+        if (chatInputRef.current) {
+          chatInputRef.current.focus();
+        }
+      }, 300);
     }
   };
 
@@ -329,6 +269,37 @@ export default function GeminiChatPage() {
     }
   };
 
+  // 메시지 목록이 업데이트될 때마다 스크롤을 맨 아래로 이동
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // 로컬 스토리지에서 사용자 이름 가져오기
+  useEffect(() => {
+    const savedUsername = localStorage.getItem("gemini_chat_username");
+    if (savedUsername) {
+      setUsername(savedUsername);
+    }
+
+    // 로컬 스토리지에서 문서 텍스트 복원
+    try {
+      const savedDocumentKey = localStorage.getItem("gemini_document_key");
+      if (savedDocumentKey) {
+        const savedDocumentText = localStorage.getItem(savedDocumentKey);
+        if (savedDocumentText) {
+          setDocumentText(savedDocumentText);
+          setDocumentStatus({
+            hasDocument: true,
+            textLength: savedDocumentText.length,
+            isInitialized: true,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("로컬 스토리지에서 문서 복원 오류:", error);
+    }
+  }, []);
+
   return (
     <MainLayout>
       <div className="max-w-4xl mx-auto">
@@ -344,7 +315,7 @@ export default function GeminiChatPage() {
             <h3 className="text-slate-200 font-semibold mb-2">사용 안내</h3>
             <ul className="list-disc list-inside text-slate-300 space-y-1 text-sm">
               <li>1단계: 사용자 이름을 입력하고 PDF 문서를 선택하세요.</li>
-              <li>2단계: Gemini 초기화 버튼을 클릭하여 설정을 완료하세요.</li>
+              <li>2단계: 챗봇 설정 버튼을 클릭하여 설정을 완료하세요.</li>
               <li>3단계: 초기화가 완료되면 질문을 입력할 수 있습니다.</li>
               <li>첨부된 문서 내용에 대한 질문만 답변 가능합니다.</li>
             </ul>
@@ -446,7 +417,7 @@ export default function GeminiChatPage() {
                     <span>처리 중...</span>
                   </>
                 ) : (
-                  <span>Gemini 초기화</span>
+                  <span>챗봇 설정</span>
                 )}
               </button>
 
@@ -471,9 +442,7 @@ export default function GeminiChatPage() {
               ) : !selectedPdf && !documentStatus.hasDocument ? (
                 <span className="text-yellow-400">PDF 파일을 선택해주세요</span>
               ) : selectedPdf && !documentStatus.isInitialized ? (
-                <span className="text-yellow-400">
-                  Gemini 초기화가 필요합니다
-                </span>
+                <span className="text-yellow-400">챗봇 설정이 필요합니다</span>
               ) : documentStatus.isInitialized ? (
                 <span className="text-green-400">준비 완료 (채팅 가능)</span>
               ) : (
@@ -529,8 +498,8 @@ export default function GeminiChatPage() {
                 </h2>
                 <p className="text-slate-400 max-w-md">
                   {documentStatus.isInitialized
-                    ? "Gemini 초기화가 완료되었습니다. 질문을 입력하세요."
-                    : "PDF 문서를 선택하고 Gemini를 초기화하세요."}
+                    ? "챗봇 설정이 완료되었습니다. 질문을 입력하세요."
+                    : "PDF 문서를 선택하고 챗봇 설정을 완료하세요."}
                 </p>
               </div>
             ) : (
@@ -574,12 +543,13 @@ export default function GeminiChatPage() {
                 <input
                   type="text"
                   value={input}
+                  ref={chatInputRef}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={
                     !username
                       ? "사용자 이름을 먼저 입력하세요"
                       : !documentStatus.isInitialized
-                      ? "Gemini 초기화를 완료하세요"
+                      ? "챗봇 설정을 완료하세요"
                       : "질문을 입력하세요..."
                   }
                   className="flex-1 py-3 px-4 bg-slate-700/30 border border-slate-600/50 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
