@@ -54,7 +54,7 @@ const tools = [
     ],
   },
   {
-    title: "Figma 컴포넌트",
+    title: "Figma 컴포넌트 Prompt",
     description:
       "Figma 디자인을 분석하여 컴포넌트 개발에 필요한 상세 프롬프트를 생성합니다.",
     icon: (
