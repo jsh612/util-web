@@ -5,6 +5,7 @@ export const API_ROUTES = {
   IMAGE: "/api/v1/image",
   PDF: "/api/v1/pdf",
   INSTAGRAM_DEFAULT: "/api/v1/instagram-default",
+  GEMINI_CHAT: "/api/v1/gemini/chat",
 } as const;
 
 // Page Routes
@@ -14,6 +15,7 @@ export const PAGE_ROUTES = {
   FIGMA: "/figma",
   CRAWLER: "/crawler",
   IMAGE_EDITOR: "/image-editor",
+  GEMINI_CHAT: "/gemini-chat",
 } as const;
 
 // API Base URL
