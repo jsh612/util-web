@@ -239,7 +239,7 @@ export default function FigmaPage() {
     <MainLayout>
       <div>
         <h1 className="text-4xl font-extrabold mb-12 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">
-          Figma 컴포넌트 생성
+          Figma 컴포넌트 Prompt 생성
         </h1>
 
         <form className="space-y-6" onSubmit={handleSubmit}>

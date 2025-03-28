@@ -66,7 +66,7 @@ const menuItems = [
     ),
   },
   {
-    name: "Figma 컴포넌트",
+    name: "Figma 컴포넌트 Prompt",
     path: "/figma",
     icon: (
       <svg

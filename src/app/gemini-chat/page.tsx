@@ -34,13 +34,6 @@ export default function GeminiChatPage() {
 
   // PDF 파일 선택 처리
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!username) {
-      alert("PDF를 업로드하기 전에 사용자 이름을 입력하세요.");
-      return;
-    }
-
-    localStorage.setItem("gemini_chat_username", username);
-
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -58,20 +51,21 @@ export default function GeminiChatPage() {
       hasDocument: false,
       isInitialized: false,
     }));
+
+    // 사용자 이름이 있다면 로컬 스토리지에 저장
+    if (username) {
+      localStorage.setItem("gemini_chat_username", username);
+    }
   };
 
   // Gemini 초기화 (PDF 업로드 및 설정)
   const initializeGemini = async () => {
-    if (!username) {
-      alert("사용자 이름을 먼저 입력하세요.");
+    if (!username || !selectedPdf) {
+      alert("사용자 이름과 PDF 파일을 모두 입력해주세요.");
       return;
     }
 
-    if (!selectedPdf) {
-      alert("PDF 파일을 먼저 선택하세요.");
-      return;
-    }
-
+    localStorage.setItem("gemini_chat_username", username);
     setInitializingGemini(true);
     try {
       const formData = new FormData();
