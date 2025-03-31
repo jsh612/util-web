@@ -8,7 +8,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { API_ROUTES } from "@/constants/routes";
 import { APP_DESCRIPTION } from "@/constants/temp-data";
 import axios from "axios";
-import React, { FormEvent, useEffect, useRef, useState } from "react";
+import React, { FormEvent, useRef, useState } from "react";
 
 interface Message {
   role: "user" | "bot";
@@ -46,6 +46,12 @@ export default function GeminiChatPage() {
     ];
     setMessages(updatedMessages);
 
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 0);
+
     try {
       const messageHistory = updatedMessages.map((msg) => msg.content);
 
@@ -58,12 +64,6 @@ export default function GeminiChatPage() {
         ...updatedMessages,
         { role: "bot" as const, content: response.data.response },
       ]);
-
-      setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-      }, 300);
     } catch (error) {
       console.error("챗봇 API 오류:", error);
       setMessages([
@@ -160,16 +160,6 @@ export default function GeminiChatPage() {
       ]);
     }
   };
-
-  useEffect(() => {
-    if (username || initializingGemini) {
-      setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-      }, 300);
-    }
-  }, [username, initializingGemini]);
 
   return (
     <MainLayout>

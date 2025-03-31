@@ -48,14 +48,12 @@ const GLOBAL_CONTEXT_KEY = "__gemini_document_contexts";
 if (!(global as any)[GLOBAL_CHAT_KEY]) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (global as any)[GLOBAL_CHAT_KEY] = new Map<string, UserChat>();
-  console.log("글로벌 userChats 초기화됨");
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 if (!(global as any)[GLOBAL_CONTEXT_KEY]) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (global as any)[GLOBAL_CONTEXT_KEY] = new Map<string, string>();
-  console.log("글로벌 documentContexts 초기화됨");
 }
 
 /**
@@ -79,8 +77,6 @@ export class GeminiChatManager {
       this.cleanupTimer = setInterval(() => {
         this.cleanupExpiredChats();
       }, this.CLEANUP_INTERVAL);
-
-      console.log("채팅 정리 타이머 설정됨");
     }
   }
 
@@ -90,7 +86,6 @@ export class GeminiChatManager {
     if (!(global as any)[GLOBAL_CHAT_KEY]) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (global as any)[GLOBAL_CHAT_KEY] = new Map<string, UserChat>();
-      console.log("userChats 새로 초기화됨 (예상치 못한 상황)");
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (global as any)[GLOBAL_CHAT_KEY];
@@ -101,7 +96,6 @@ export class GeminiChatManager {
     if (!(global as any)[GLOBAL_CONTEXT_KEY]) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (global as any)[GLOBAL_CONTEXT_KEY] = new Map<string, string>();
-      console.log("documentContexts 새로 초기화됨 (예상치 못한 상황)");
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (global as any)[GLOBAL_CONTEXT_KEY];
@@ -159,12 +153,6 @@ export class GeminiChatManager {
     chatId: string
   ): { username: string; chatInstance: ChatSession } | null {
     try {
-      console.log(
-        `[${new Date().toISOString()}] findChatSessionById 호출됨, chatId: ${chatId}`
-      );
-      const keys = Array.from(this.userChats.keys());
-      console.log("현재 저장된 키:", keys);
-
       // chatId에 해당하는 채팅 인스턴스 직접 조회
       const userChat = this.userChats.get(chatId);
 
@@ -242,13 +230,6 @@ export class GeminiChatManager {
         chatInstance: chat,
       });
 
-      const currentTime = new Date().toISOString();
-      console.log(
-        `[${currentTime}] initializeGeminiChat 완료, chatId: ${chatId}`
-      );
-      console.log("초기화 후 저장된 키:", Array.from(this.userChats.keys()));
-      console.log("userChats 맵 사이즈:", this.userChats.size);
-
       return {
         success: true,
         chatId,
@@ -304,12 +285,6 @@ export class GeminiChatManager {
           error: "채팅 ID가 제공되지 않았습니다. 먼저 초기화를 진행해주세요.",
         };
       }
-
-      const currentTime = new Date().toISOString();
-      console.log(
-        `[${currentTime}] generateChatResponse: 응답 생성 시작, chatId: ${chatId}`
-      );
-      console.log("생성 시 저장된 키:", Array.from(this.userChats.keys()));
 
       const session = this.findChatSessionById(chatId);
       if (session) {

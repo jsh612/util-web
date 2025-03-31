@@ -200,11 +200,17 @@ export default function GeminiChatPage() {
     ];
     setMessages(updatedMessages);
 
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 0);
+
     try {
       // API 요청에 필요한 메시지 형식으로 변환
       const messageHistory = updatedMessages.map((msg) => msg.content);
 
-      // API 호출 - 문서 컨텍스트도 함께 전송
+      // API 호출
       const response = await axios.post(API_ROUTES.GEMINI_CHAT, {
         messages: messageHistory,
         chatId: chatId,
