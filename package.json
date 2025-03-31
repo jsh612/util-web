@@ -10,6 +10,7 @@
     "check:arch": "node -p \"process.arch + ' / Node ' + process.version\""
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.0",
     "@types/sharp": "^0.32.0",
     "axios": "^1.7.9",
     "buffer": "^6.0.3",
