@@ -1,8 +1,18 @@
-import {
-  generateChatResponse,
-  receiveDocumentContext,
-} from "@/app/utils/gemini";
+import { geminiChatManager } from "@/app/utils/gemini";
 import { NextRequest, NextResponse } from "next/server";
+
+export interface ChatRequest {
+  messages: string[];
+  chatId?: string;
+}
+
+export interface ChatResponse {
+  response: string;
+}
+
+export interface ErrorResponse {
+  error: string;
+}
 
 // 사용자 이름 추출 함수
 const extractUsername = (message: string): string | null => {
@@ -12,7 +22,7 @@ const extractUsername = (message: string): string | null => {
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, documentText } = await request.json();
+    const { messages, chatId } = (await request.json()) as ChatRequest;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -32,16 +42,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 문서 컨텍스트가 전달되었다면 서버 메모리에 설정
-    if (
-      documentText &&
-      typeof documentText === "string" &&
-      documentText.length > 0
-    ) {
-      receiveDocumentContext(username, documentText);
+    // chatId가 없으면 오류 반환
+    if (!chatId) {
+      return NextResponse.json(
+        { error: "채팅 ID가 제공되지 않았습니다. 먼저 초기화를 진행해주세요." },
+        { status: 400 }
+      );
     }
 
-    const result = await generateChatResponse(messages);
+    // chatId를 통해 채팅 응답 생성
+    const result = await geminiChatManager.generateChatResponse(
+      messages,
+      chatId
+    );
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 500 });
