@@ -1,4 +1,4 @@
-import { getDocumentContext, setDocumentContext } from "@/app/utils/gemini";
+import { geminiChatManager } from "@/app/utils/gemini";
 import { NextRequest, NextResponse } from "next/server";
 import * as pdfParse from "pdf-parse";
 
@@ -77,7 +77,10 @@ export async function POST(request: NextRequest) {
           : extractedText;
 
       // 사용자 문서 컨텍스트 설정
-      const result = setDocumentContext(username, trimmedText);
+      const result = geminiChatManager.setDocumentContext(
+        username,
+        trimmedText
+      );
 
       if (!result.success) {
         return NextResponse.json(
@@ -87,7 +90,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 설정 후 문서 상태 다시 확인
-      const contextCheck = getDocumentContext(username);
+      const contextCheck = geminiChatManager.getDocumentContext(username);
       const isInitialized = contextCheck.success && contextCheck.hasDocument;
 
       return NextResponse.json({
@@ -139,7 +142,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = getDocumentContext(username);
+    const result = geminiChatManager.getDocumentContext(username);
 
     // 사용자 정보가 없는 경우에도 오류 대신 빈 상태 반환
     if (!result.success) {

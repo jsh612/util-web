@@ -1,6 +1,11 @@
 "use client";
 
+import {
+  InitializeRequest,
+  InitializeResponse,
+} from "@/app/api/v1/gemini/initialize/route";
 import MainLayout from "@/components/layout/MainLayout";
+import { API_ROUTES } from "@/constants/routes";
 import axios, { AxiosError } from "axios";
 import React, { FormEvent, useEffect, useRef, useState } from "react";
 
@@ -22,6 +27,8 @@ export default function GeminiChatPage() {
     textLength: number;
     isInitialized: boolean;
   }>({ hasDocument: false, textLength: 0, isInitialized: false });
+
+  const [chatId, setChatId] = useState<string | undefined>();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +86,7 @@ export default function GeminiChatPage() {
       };
       setMessages((prevMessages) => [...prevMessages, processingMessage]);
 
-      const response = await axios.post("/api/v1/gemini/document", formData, {
+      const response = await axios.post(API_ROUTES.GEMINI_DOCUMENT, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -129,6 +136,22 @@ export default function GeminiChatPage() {
 
         setSelectedPdf(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
+        // API 호출 - 문서 컨텍스트도 함께 전송
+        const chatSessionResponse = await axios.post<
+          InitializeResponse,
+          { data: InitializeResponse },
+          InitializeRequest
+        >(API_ROUTES.GEMINI_INITIALIZE, {
+          username: username,
+          documentText: documentText,
+        });
+
+        if (
+          chatSessionResponse.data.success &&
+          chatSessionResponse.data.chatId
+        ) {
+          setChatId(chatSessionResponse.data.chatId);
+        }
       }
     } catch (error: unknown) {
       console.error("챗봇 초기화 중 오류:", error);
@@ -182,9 +205,9 @@ export default function GeminiChatPage() {
       const messageHistory = updatedMessages.map((msg) => msg.content);
 
       // API 호출 - 문서 컨텍스트도 함께 전송
-      const response = await axios.post("/api/v1/gemini/chat", {
+      const response = await axios.post(API_ROUTES.GEMINI_CHAT, {
         messages: messageHistory,
-        documentText: documentText, // 문서 컨텍스트 전달
+        chatId: chatId,
       });
 
       // 봇 응답 추가
@@ -265,8 +288,10 @@ export default function GeminiChatPage() {
 
   // 메시지 목록이 업데이트될 때마다 스크롤을 맨 아래로 이동
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (initializingGemini) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [initializingGemini]);
 
   // 로컬 스토리지에서 사용자 이름 가져오기
   useEffect(() => {
