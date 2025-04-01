@@ -1,5 +1,35 @@
 import { Chat, GoogleGenAI } from "@google/genai";
 
+// 서버 사이드에서 실행될 때만 서버 모듈을 임포트
+let geminiState: {
+  getUserChats: () => Map<string, UserChat>;
+  getDocumentContexts: () => Map<string, string>;
+} | null = null;
+
+// 서버 사이드에서만 실행
+if (typeof window === "undefined") {
+  try {
+    // 동적으로 서버 모듈 임포트 - 간소화된 방식
+    const importDynamic = new Function(
+      "modulePath",
+      "return import(modulePath)"
+    );
+    importDynamic("../../../server")
+      .then((serverModule: { geminiState: typeof geminiState }) => {
+        geminiState = serverModule.geminiState;
+        console.log("서버 모듈에서 Gemini 상태를 가져왔습니다");
+      })
+      .catch((error: Error) => {
+        console.warn(
+          "서버 모듈 가져오기 실패. 로컬 상태를 사용합니다:",
+          error.message
+        );
+      });
+  } catch (error) {
+    console.warn("동적 임포트 실패. 로컬 상태를 사용합니다:", error);
+  }
+}
+
 // Gemini API 키 설정
 const API_KEY = process.env.GEMINI_API_KEY || "";
 
@@ -9,12 +39,26 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 // Google Generative AI 인스턴스 생성
 export const genAI = new GoogleGenAI({ apiKey: API_KEY });
 
-// 사용자별 채팅 기록 저장
-interface UserChat {
-  history: string[];
-  lastActive: number;
-  documentContext: string;
-  chatInstance?: Chat; // Gemini 채팅 인스턴스 저장
+// 서버리스 환경에서 상태를 유지하기 위한 캐시
+interface GlobalWithCache {
+  userChats: Map<string, UserChat>;
+  documentContexts: Map<string, string>;
+}
+
+// globalThis에 확장 속성을 추가하여 서버리스 환경에서 상태 유지
+const globalCache = globalThis as unknown as GlobalWithCache;
+
+// 서버 모듈이 없을 경우에만 글로벌 캐시 초기화
+if (!geminiState) {
+  if (!globalCache.userChats) {
+    globalCache.userChats = new Map<string, UserChat>();
+    console.log("글로벌 userChats 초기화됨");
+  }
+
+  if (!globalCache.documentContexts) {
+    globalCache.documentContexts = new Map<string, string>();
+    console.log("글로벌 documentContexts 초기화됨");
+  }
 }
 
 export interface InitializeResult {
@@ -24,22 +68,11 @@ export interface InitializeResult {
   chatInstance?: Chat;
 }
 
-// 서버리스 환경에서 상태 유지를 위한 전역 변수
-// globalThis 대신 직접 global 사용
-const GLOBAL_CHAT_KEY = "__gemini_user_chats";
-const GLOBAL_CONTEXT_KEY = "__gemini_document_contexts";
-
-// 글로벌 상태 초기화 (서버 재시작 시에만 초기화됨)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-if (!(global as any)[GLOBAL_CHAT_KEY]) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (global as any)[GLOBAL_CHAT_KEY] = new Map<string, UserChat>();
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-if (!(global as any)[GLOBAL_CONTEXT_KEY]) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (global as any)[GLOBAL_CONTEXT_KEY] = new Map<string, string>();
+export interface UserChat {
+  history: string[];
+  lastActive: number;
+  documentContext: string;
+  chatInstance?: Chat; // Gemini 채팅 인스턴스 저장
 }
 
 /**
@@ -52,6 +85,8 @@ export class GeminiChatManager {
   private cleanupTimer: NodeJS.Timeout | null = null;
 
   constructor() {
+    console.log("GeminiChatManager 생성");
+
     // 서버 환경에서만 실행
     if (typeof window === "undefined") {
       // 중복 타이머 방지를 위해 기존 타이머 제거
@@ -66,25 +101,23 @@ export class GeminiChatManager {
     }
   }
 
-  // 글로벌 상태 접근 메서드
+  // 전역 캐시 접근 메서드
   private get userChats(): Map<string, UserChat> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!(global as any)[GLOBAL_CHAT_KEY]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (global as any)[GLOBAL_CHAT_KEY] = new Map<string, UserChat>();
+    // 서버 모듈이 있으면 서버 상태를 사용
+    if (geminiState) {
+      return geminiState.getUserChats();
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (global as any)[GLOBAL_CHAT_KEY];
+    // 없으면 글로벌 캐시 사용
+    return globalCache.userChats;
   }
 
   private get documentContexts(): Map<string, string> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!(global as any)[GLOBAL_CONTEXT_KEY]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (global as any)[GLOBAL_CONTEXT_KEY] = new Map<string, string>();
+    // 서버 모듈이 있으면 서버 상태를 사용
+    if (geminiState) {
+      return geminiState.getDocumentContexts();
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (global as any)[GLOBAL_CONTEXT_KEY];
+    // 없으면 글로벌 캐시 사용
+    return globalCache.documentContexts;
   }
 
   /**
@@ -121,7 +154,7 @@ export class GeminiChatManager {
   /**
    * 현재 저장된 모든 채팅 세션 정보 반환 (디버깅용)
    */
-  public getDebugInfo() {
+  getDebugInfo() {
     return {
       totalSessions: this.userChats.size,
       chatIds: Array.from(this.userChats.keys()),
@@ -135,10 +168,15 @@ export class GeminiChatManager {
   /**
    * 채팅 ID로 채팅 인스턴스 찾기
    */
-  public findChatSessionById(
+  findChatSessionById(
     chatId: string
   ): { username: string; chatInstance: Chat } | null {
     try {
+      // 디버깅을 위한 로그 추가
+      console.log(`findChatSessionById 호출, chatId: ${chatId}`);
+      console.log(`저장된 채팅 세션 수: ${this.userChats.size}`);
+      console.log(`저장된 채팅 키: ${Array.from(this.userChats.keys())}`);
+
       // chatId에 해당하는 채팅 인스턴스 직접 조회
       const userChat = this.userChats.get(chatId);
 
@@ -164,7 +202,7 @@ export class GeminiChatManager {
   /**
    * Gemini 채팅 초기화
    */
-  public async initializeGeminiChat(
+  async initializeGeminiChat(
     username: string,
     documentText?: string
   ): Promise<InitializeResult> {
@@ -175,13 +213,6 @@ export class GeminiChatManager {
           error: "사용자 이름이 제공되지 않았습니다.",
         };
       }
-
-      // const generationConfig = {
-      //   temperature: 0.2,
-      //   maxOutputTokens: 1000,
-      //   topK: 40,
-      //   topP: 0.8,
-      // };
 
       let systemPrompt = `
       당신은 웹 사이트의 Q&A 챗봇입니다. 다음 규칙을 반드시 따라주세요:
@@ -223,6 +254,9 @@ export class GeminiChatManager {
         chatInstance: chat,
       });
 
+      console.log(`채팅 초기화 완료, chatId: ${chatId}`);
+      console.log(`현재 저장된 채팅 세션 수: ${this.userChats.size}`);
+
       return {
         success: true,
         chatId,
@@ -240,7 +274,7 @@ export class GeminiChatManager {
   /**
    * 채팅 응답 생성
    */
-  public async generateChatResponse(messages: string[], chatId?: string) {
+  async generateChatResponse(messages: string[], chatId?: string) {
     try {
       if (messages.length === 0) {
         return {
@@ -279,6 +313,9 @@ export class GeminiChatManager {
         };
       }
 
+      console.log(`generateChatResponse 호출, chatId: ${chatId}`);
+      console.log(`저장된 채팅 세션 수: ${this.userChats.size}`);
+
       const session = this.findChatSessionById(chatId);
 
       if (session) {
@@ -314,6 +351,7 @@ export class GeminiChatManager {
 
         return { success: true, data: result.text };
       } catch (modelError) {
+        console.error("Gemini 모델 응답 오류:", modelError);
         return {
           success: false,
           error: `Gemini 응답 생성 오류: ${String(modelError)}`,
@@ -331,7 +369,7 @@ export class GeminiChatManager {
   /**
    * PDF 문서 컨텍스트 설정
    */
-  public setDocumentContext(username: string, documentText: string) {
+  setDocumentContext(username: string, documentText: string) {
     if (!username || !documentText) {
       console.error("사용자 이름 또는 문서 내용이 없습니다.");
       return {
@@ -381,7 +419,7 @@ export class GeminiChatManager {
   /**
    * API 요청에서 문서 컨텍스트 받기
    */
-  public receiveDocumentContext(username: string, documentText: string) {
+  receiveDocumentContext(username: string, documentText: string) {
     if (!username || !documentText) {
       console.error("API 요청에서 문서 컨텍스트 수신 실패");
       return false;
@@ -401,7 +439,7 @@ export class GeminiChatManager {
   /**
    * 현재 설정된 문서 컨텍스트 가져오기
    */
-  public getDocumentContext(username: string) {
+  getDocumentContext(username: string) {
     if (!username) {
       console.error("사용자 이름이 제공되지 않았습니다.");
       return {
