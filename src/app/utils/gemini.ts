@@ -24,27 +24,6 @@ export interface InitializeResult {
   chatInstance?: Chat;
 }
 
-// 서버리스 환경에서 상태 유지를 위한 전역 변수
-// globalThis 대신 직접 global 사용
-export const GLOBAL_CHAT_KEY = "__gemini_user_chats";
-export const GLOBAL_CONTEXT_KEY = "__gemini_document_contexts";
-
-export const setGlobalState = () => {
-  // 글로벌 상태 초기화 (서버 재시작 시에만 초기화됨)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (!(global as any)[GLOBAL_CHAT_KEY]) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (global as any)[GLOBAL_CHAT_KEY] = new Map<string, UserChat>();
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (!(global as any)[GLOBAL_CONTEXT_KEY]) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (global as any)[GLOBAL_CONTEXT_KEY] = new Map<string, string>();
-  }
-  console.log("setGlobalState 호출");
-};
-
 /**
  * Gemini 채팅 관리 클래스
  * 사용자별 채팅 인스턴스와 문서 컨텍스트를 관리하는 클래스
@@ -186,8 +165,8 @@ export class GeminiChatManager {
         model: GEMINI_MODEL,
         history: [],
         config: {
-          temperature: 0.2,
-          maxOutputTokens: 1000,
+          temperature: 1,
+          maxOutputTokens: 3000,
           topK: 40,
           topP: 0.8,
         },
