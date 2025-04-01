@@ -110,7 +110,6 @@ export default function GeminiChatPage() {
           }
         }, 300);
       } else {
-        console.error("Gemini 초기화 실패:", response.data.error);
         setInitializingGemini(false);
         setMessages([
           {

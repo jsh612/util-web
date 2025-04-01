@@ -7,7 +7,13 @@ export interface ChatRequest {
 }
 
 export interface ChatResponse {
-  response: string;
+  response: {
+    message: string;
+    tokens: {
+      prompt: number;
+      completion: number;
+    };
+  };
 }
 
 export interface ErrorResponse {

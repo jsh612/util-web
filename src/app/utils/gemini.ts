@@ -1,4 +1,4 @@
-import { ChatSession, GoogleGenerativeAI } from "@google/generative-ai";
+import { Chat, GoogleGenAI } from "@google/genai";
 
 // Gemini API 키 설정
 const API_KEY = process.env.GEMINI_API_KEY || "";
@@ -7,35 +7,21 @@ const API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
 // Google Generative AI 인스턴스 생성
-export const genAI = new GoogleGenerativeAI(API_KEY);
-
-// Gemini 모델 사용
-export const getGeminiModel = () => {
-  if (!API_KEY) {
-    console.error("Gemini API 키가 설정되지 않았습니다.");
-  }
-  return genAI.getGenerativeModel({
-    model: GEMINI_MODEL,
-    generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 1000,
-    },
-  });
-};
+export const genAI = new GoogleGenAI({ apiKey: API_KEY });
 
 // 사용자별 채팅 기록 저장
 interface UserChat {
   history: string[];
   lastActive: number;
   documentContext: string;
-  chatInstance?: ChatSession; // Gemini 채팅 인스턴스 저장
+  chatInstance?: Chat; // Gemini 채팅 인스턴스 저장
 }
 
 export interface InitializeResult {
   success: boolean;
   error?: string;
   chatId?: string;
-  chatInstance?: ChatSession;
+  chatInstance?: Chat;
 }
 
 // 서버리스 환경에서 상태 유지를 위한 전역 변수
@@ -151,7 +137,7 @@ export class GeminiChatManager {
    */
   public findChatSessionById(
     chatId: string
-  ): { username: string; chatInstance: ChatSession } | null {
+  ): { username: string; chatInstance: Chat } | null {
     try {
       // chatId에 해당하는 채팅 인스턴스 직접 조회
       const userChat = this.userChats.get(chatId);
@@ -190,13 +176,12 @@ export class GeminiChatManager {
         };
       }
 
-      const model = getGeminiModel();
-      const generationConfig = {
-        temperature: 0.2,
-        maxOutputTokens: 1000,
-        topK: 40,
-        topP: 0.8,
-      };
+      // const generationConfig = {
+      //   temperature: 0.2,
+      //   maxOutputTokens: 1000,
+      //   topK: 40,
+      //   topP: 0.8,
+      // };
 
       let systemPrompt = `
       당신은 웹 사이트의 Q&A 챗봇입니다. 다음 규칙을 반드시 따라주세요:
@@ -212,13 +197,21 @@ export class GeminiChatManager {
         systemPrompt += `\n위 문서 컨텍스트를 기반으로 질문에 답변하세요. 이 문서에서 찾을 수 없는 정보는 "해당 내용은 문서에 없습니다."라고 응답하세요.`;
       }
 
-      const chat = model.startChat({
+      const chat = genAI.chats.create({
+        model: GEMINI_MODEL,
         history: [],
-        generationConfig,
+        config: {
+          temperature: 0.2,
+          maxOutputTokens: 1000,
+          topK: 40,
+          topP: 0.8,
+        },
       });
 
       // 시스템 프롬프트로 초기화
-      await chat.sendMessage(systemPrompt);
+      await chat.sendMessage({
+        message: systemPrompt,
+      });
 
       const chatId = `chat_${username}_${Date.now()}`;
 
@@ -287,6 +280,7 @@ export class GeminiChatManager {
       }
 
       const session = this.findChatSessionById(chatId);
+
       if (session) {
         chatInstance = session.chatInstance;
       }
@@ -301,9 +295,9 @@ export class GeminiChatManager {
       }
 
       try {
-        const result = await chatInstance.sendMessage(lastMessage);
-        const response = await result.response;
-        const text = response.text();
+        const result = await chatInstance.sendMessage({
+          message: lastMessage,
+        });
 
         // 대화 기록 업데이트 - chatId를 키로 사용
         const userChat = this.userChats.get(chatId);
@@ -318,9 +312,8 @@ export class GeminiChatManager {
           this.userChats.set(chatId, userChat);
         }
 
-        return { success: true, data: text };
+        return { success: true, data: result.text };
       } catch (modelError) {
-        console.error("Gemini 모델 응답 오류:", modelError);
         return {
           success: false,
           error: `Gemini 응답 생성 오류: ${String(modelError)}`,
