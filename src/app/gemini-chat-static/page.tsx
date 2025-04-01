@@ -1,5 +1,6 @@
 "use client";
 
+import { ChatRequest, ChatResponse } from "@/app/api/v1/gemini/chat/route";
 import {
   InitializeRequest,
   InitializeResponse,
@@ -7,6 +8,7 @@ import {
 import MainLayout from "@/components/layout/MainLayout";
 import { API_ROUTES } from "@/constants/routes";
 import { APP_DESCRIPTION } from "@/constants/temp-data";
+import { GenerateContentResponseUsageMetadata } from "@google/genai";
 import axios from "axios";
 import React, { FormEvent, useRef, useState } from "react";
 
@@ -25,6 +27,10 @@ export default function GeminiChatPage() {
 
   const [initializingGemini, setInitializingGemini] = useState(false);
   const [chatId, setChatId] = useState<string | undefined>();
+
+  const [usageMetadata, setUsageMetadata] = useState<
+    GenerateContentResponseUsageMetadata | undefined
+  >();
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newUsername = e.target.value;
@@ -55,17 +61,39 @@ export default function GeminiChatPage() {
     try {
       const messageHistory = updatedMessages.map((msg) => msg.content);
 
-      const response = await axios.post(API_ROUTES.GEMINI_CHAT, {
+      const newMessage = await axios.post<
+        ChatResponse,
+        { data: ChatResponse },
+        ChatRequest
+      >(API_ROUTES.GEMINI_CHAT, {
         messages: messageHistory,
         chatId: chatId,
       });
 
-      setMessages([
-        ...updatedMessages,
-        { role: "bot" as const, content: response.data.response },
-      ]);
-    } catch (error) {
-      console.error("챗봇 API 오류:", error);
+      if (newMessage.data.success && newMessage.data.data) {
+        if (newMessage.data.data.usageMetadata) {
+          setUsageMetadata(newMessage.data.data.usageMetadata);
+        }
+
+        if (newMessage.data.data.text) {
+          setMessages([
+            ...updatedMessages,
+            {
+              role: "bot" as const,
+              content: newMessage.data.data.text,
+            },
+          ]);
+        }
+      } else {
+        setMessages([
+          ...updatedMessages,
+          {
+            role: "bot" as const,
+            content: "죄송합니다. 오류가 발생했습니다. 다시 시도해 주세요.",
+          },
+        ]);
+      }
+    } catch {
       setMessages([
         ...updatedMessages,
         {
@@ -194,6 +222,24 @@ export default function GeminiChatPage() {
               <p className="text-xs text-teal-400 mt-1">
                 안녕하세요, {username}님!
               </p>
+            )}
+            {usageMetadata && (
+              <div className="flex justify-end">
+                <p className="text-lg text-teal-400 mt-1">
+                  프롬프트 토큰 사용량:{" "}
+                  {usageMetadata.promptTokenCount?.toLocaleString()}
+                </p>
+                <br />
+                <p className="text-lg text-teal-400 mt-1">
+                  총 토큰 사용량:{" "}
+                  {usageMetadata.totalTokenCount?.toLocaleString()}
+                </p>
+                <br />
+                <p className="text-lg text-teal-400 mt-1">
+                  응답 토큰 사용량:{" "}
+                  {usageMetadata.candidatesTokenCount?.toLocaleString()}
+                </p>
+              </div>
             )}
           </div>
         </div>

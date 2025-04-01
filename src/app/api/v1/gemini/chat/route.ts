@@ -1,5 +1,8 @@
-import { geminiChatManager } from "@/app/utils/gemini";
+import { getGeminiChatManager } from "@/app/utils/gemini";
+import { GenerateContentResponseUsageMetadata } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
+
+const geminiChatManager = getGeminiChatManager();
 
 export interface ChatRequest {
   messages: string[];
@@ -7,13 +10,12 @@ export interface ChatRequest {
 }
 
 export interface ChatResponse {
-  response: {
-    message: string;
-    tokens: {
-      prompt: number;
-      completion: number;
-    };
+  success: boolean;
+  data?: {
+    text: string | undefined;
+    usageMetadata: GenerateContentResponseUsageMetadata | undefined;
   };
+  error?: undefined;
 }
 
 export interface ErrorResponse {
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
-    return NextResponse.json({ response: result.data });
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Gemini 챗봇 API 오류:", error);
     return NextResponse.json(

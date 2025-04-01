@@ -1,5 +1,7 @@
-import { geminiChatManager } from "@/app/utils/gemini";
+import { getGeminiChatManager } from "@/app/utils/gemini";
 import { NextRequest, NextResponse } from "next/server";
+
+const geminiChatManager = getGeminiChatManager();
 
 export interface InitializeRequest {
   username: string;

@@ -26,21 +26,24 @@ export interface InitializeResult {
 
 // 서버리스 환경에서 상태 유지를 위한 전역 변수
 // globalThis 대신 직접 global 사용
-const GLOBAL_CHAT_KEY = "__gemini_user_chats";
-const GLOBAL_CONTEXT_KEY = "__gemini_document_contexts";
+export const GLOBAL_CHAT_KEY = "__gemini_user_chats";
+export const GLOBAL_CONTEXT_KEY = "__gemini_document_contexts";
 
-// 글로벌 상태 초기화 (서버 재시작 시에만 초기화됨)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-if (!(global as any)[GLOBAL_CHAT_KEY]) {
+export const setGlobalState = () => {
+  // 글로벌 상태 초기화 (서버 재시작 시에만 초기화됨)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (global as any)[GLOBAL_CHAT_KEY] = new Map<string, UserChat>();
-}
+  if (!(global as any)[GLOBAL_CHAT_KEY]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global as any)[GLOBAL_CHAT_KEY] = new Map<string, UserChat>();
+  }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-if (!(global as any)[GLOBAL_CONTEXT_KEY]) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (global as any)[GLOBAL_CONTEXT_KEY] = new Map<string, string>();
-}
+  if (!(global as any)[GLOBAL_CONTEXT_KEY]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global as any)[GLOBAL_CONTEXT_KEY] = new Map<string, string>();
+  }
+  console.log("setGlobalState 호출");
+};
 
 /**
  * Gemini 채팅 관리 클래스
@@ -51,7 +54,13 @@ export class GeminiChatManager {
   private readonly CLEANUP_INTERVAL = 60 * 60 * 1000; // 1시간
   private cleanupTimer: NodeJS.Timeout | null = null;
 
+  private userChats: Map<string, UserChat>;
+
+  private documentContexts: Map<string, string>;
+
   constructor() {
+    // setGlobalState()
+
     // 서버 환경에서만 실행
     if (typeof window === "undefined") {
       // 중복 타이머 방지를 위해 기존 타이머 제거
@@ -64,27 +73,8 @@ export class GeminiChatManager {
         this.cleanupExpiredChats();
       }, this.CLEANUP_INTERVAL);
     }
-  }
-
-  // 글로벌 상태 접근 메서드
-  private get userChats(): Map<string, UserChat> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!(global as any)[GLOBAL_CHAT_KEY]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (global as any)[GLOBAL_CHAT_KEY] = new Map<string, UserChat>();
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (global as any)[GLOBAL_CHAT_KEY];
-  }
-
-  private get documentContexts(): Map<string, string> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!(global as any)[GLOBAL_CONTEXT_KEY]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (global as any)[GLOBAL_CONTEXT_KEY] = new Map<string, string>();
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (global as any)[GLOBAL_CONTEXT_KEY];
+    this.userChats = new Map<string, UserChat>();
+    this.documentContexts = new Map<string, string>();
   }
 
   /**
@@ -103,9 +93,10 @@ export class GeminiChatManager {
       const now = Date.now();
       let cleanupCount = 0;
 
-      for (const [chatId, chat] of this.userChats.entries()) {
+      const userChats = this.userChats;
+      for (const [chatId, chat] of userChats.entries()) {
         if (now - chat.lastActive > this.EXPIRY_TIME) {
-          this.userChats.delete(chatId);
+          userChats.delete(chatId);
           cleanupCount++;
         }
       }
@@ -122,9 +113,10 @@ export class GeminiChatManager {
    * 현재 저장된 모든 채팅 세션 정보 반환 (디버깅용)
    */
   public getDebugInfo() {
+    const userChats = this.userChats;
     return {
-      totalSessions: this.userChats.size,
-      chatIds: Array.from(this.userChats.keys()),
+      totalSessions: userChats.size,
+      chatIds: Array.from(userChats.keys()),
       documentContexts: {
         totalKeys: this.documentContexts.size,
         keys: Array.from(this.documentContexts.keys()),
@@ -175,13 +167,6 @@ export class GeminiChatManager {
           error: "사용자 이름이 제공되지 않았습니다.",
         };
       }
-
-      // const generationConfig = {
-      //   temperature: 0.2,
-      //   maxOutputTokens: 1000,
-      //   topK: 40,
-      //   topP: 0.8,
-      // };
 
       let systemPrompt = `
       당신은 웹 사이트의 Q&A 챗봇입니다. 다음 규칙을 반드시 따라주세요:
@@ -255,7 +240,14 @@ export class GeminiChatManager {
       if (!username) {
         return {
           success: true,
-          data: "답변이 불가합니다",
+          data: {
+            text: "답변이 불가합니다. 사용자 이름을 확인해주세요.",
+            usageMetadata: {
+              promptTokenCount: 0,
+              candidatesTokenCount: 0,
+              totalTokenCount: 0,
+            },
+          },
         };
       }
 
@@ -264,7 +256,14 @@ export class GeminiChatManager {
       if (!isQuestionFormat) {
         return {
           success: true,
-          data: "해당 요청은 처리할 수 없습니다.",
+          data: {
+            text: "해당 요청은 처리할 수 없습니다.",
+            usageMetadata: {
+              promptTokenCount: 0,
+              candidatesTokenCount: 0,
+              totalTokenCount: 0,
+            },
+          },
         };
       }
 
@@ -312,7 +311,13 @@ export class GeminiChatManager {
           this.userChats.set(chatId, userChat);
         }
 
-        return { success: true, data: result.text };
+        return {
+          success: true,
+          data: {
+            text: result.text,
+            usageMetadata: result.usageMetadata,
+          },
+        };
       } catch (modelError) {
         return {
           success: false,
@@ -429,5 +434,16 @@ export class GeminiChatManager {
   }
 }
 
-// 싱글톤 인스턴스 생성
-export const geminiChatManager = new GeminiChatManager();
+// 글로벌 타입 확장
+declare global {
+  // eslint-disable-next-line no-var
+  var geminiChatManagerInstance: GeminiChatManager | undefined;
+}
+
+// 싱글톤 인스턴스 관리
+export function getGeminiChatManager(): GeminiChatManager {
+  if (!global.geminiChatManagerInstance) {
+    global.geminiChatManagerInstance = new GeminiChatManager();
+  }
+  return global.geminiChatManagerInstance;
+}
