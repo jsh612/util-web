@@ -1,10 +1,12 @@
 "use client";
 
-import { ChatRequest, ChatResponse } from "@/app/api/v1/gemini/chat/route";
 import {
+  ChatRequest,
+  ChatResponse,
   InitializeRequest,
   InitializeResponse,
-} from "@/app/api/v1/gemini/initialize/route";
+} from "@/app/api/v1/gemini/chat/route";
+
 import MainLayout from "@/components/layout/MainLayout";
 import { API_ROUTES } from "@/constants/routes";
 import { APP_DESCRIPTION } from "@/constants/temp-data";
@@ -66,6 +68,7 @@ export default function GeminiChatPage() {
         { data: ChatResponse },
         ChatRequest
       >(API_ROUTES.GEMINI_CHAT, {
+        action: "chat",
         messages: messageHistory,
         chatId: chatId,
       });
@@ -118,7 +121,8 @@ export default function GeminiChatPage() {
         InitializeResponse,
         { data: InitializeResponse },
         InitializeRequest
-      >(API_ROUTES.GEMINI_INITIALIZE, {
+      >(API_ROUTES.GEMINI_CHAT, {
+        action: "initialize",
         username: username,
         documentText: APP_DESCRIPTION,
       });
