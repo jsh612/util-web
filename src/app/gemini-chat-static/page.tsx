@@ -9,7 +9,7 @@ import {
 
 import MainLayout from "@/components/layout/MainLayout";
 import { API_ROUTES } from "@/constants/routes";
-import { APP_DESCRIPTION } from "@/constants/temp-data";
+import { APP_DESCRIPTION, INCOME_TAX_LAW } from "@/constants/temp-data";
 import { GenerateContentResponseUsageMetadata } from "@google/genai";
 import axios from "axios";
 import React, { FormEvent, useRef, useState } from "react";
@@ -19,10 +19,14 @@ interface Message {
   content: string;
 }
 
+type PolicyType = "파킹앱 정책" | "소득세법";
+
 export default function GeminiChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [username, setUsername] = useState("");
+  const [selectedPolicy, setSelectedPolicy] =
+    useState<PolicyType>("파킹앱 정책");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
@@ -37,6 +41,10 @@ export default function GeminiChatPage() {
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newUsername = e.target.value;
     setUsername(newUsername);
+  };
+
+  const handlePolicyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedPolicy(e.target.value as PolicyType);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -124,7 +132,8 @@ export default function GeminiChatPage() {
       >(API_ROUTES.GEMINI_CHAT, {
         action: "initialize",
         username: username,
-        documentText: APP_DESCRIPTION,
+        documentText:
+          selectedPolicy === "파킹앱 정책" ? APP_DESCRIPTION : INCOME_TAX_LAW,
       });
 
       if (response.data.success && response.data.chatId) {
@@ -133,7 +142,7 @@ export default function GeminiChatPage() {
         setMessages([
           {
             role: "bot",
-            content: "설정이 완료되었습니다. 채팅을 시작하세요.",
+            content: `${selectedPolicy}에 대한 설정이 완료되었습니다. 채팅을 시작하세요.`,
           },
         ]);
         setTimeout(() => {
@@ -207,26 +216,48 @@ export default function GeminiChatPage() {
             사용자 설정
           </h2>
 
-          <div className="mb-4">
-            <label
-              htmlFor="username"
-              className="block text-sm font-medium text-slate-300 mb-1"
-            >
-              사용자 이름
-            </label>
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={handleUsernameChange}
-              placeholder="이름을 입력하세요"
-              className="w-full py-2 px-3 bg-slate-700/30 border border-slate-600/50 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-            />
-            {username && (
-              <p className="text-lg text-teal-400 mt-1">
-                안녕하세요, {username}님!
-              </p>
-            )}
+          <div className="space-y-4">
+            <div>
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-slate-300 mb-1"
+              >
+                사용자 이름
+              </label>
+              <input
+                type="text"
+                id="username"
+                value={username}
+                onChange={handleUsernameChange}
+                placeholder="이름을 입력하세요"
+                className="w-full py-2 px-3 bg-slate-700/30 border border-slate-600/50 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+              />
+              {username && (
+                <p className="text-lg text-teal-400 mt-1">
+                  안녕하세요, {username}님!
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="policy"
+                className="block text-sm font-medium text-slate-300 mb-1"
+              >
+                카테고리
+              </label>
+              <select
+                id="policy"
+                value={selectedPolicy}
+                onChange={handlePolicyChange}
+                className="w-full py-2 px-3 bg-slate-700/30 border border-slate-600/50 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                disabled={!!chatId}
+              >
+                <option value="파킹앱 정책">파킹앱 정책</option>
+                <option value="소득세법">소득세법</option>
+              </select>
+            </div>
+
             {usageMetadata && (
               <div className="flex flex-col w-[200px]">
                 <div className="text-lg text-sky-400 mt-1 flex flex-row justify-between">
