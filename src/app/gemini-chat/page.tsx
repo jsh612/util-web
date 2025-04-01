@@ -1,11 +1,13 @@
 "use client";
 
+import { ChatRequest, ChatResponse } from "@/app/api/v1/gemini/chat/route";
 import {
   InitializeRequest,
   InitializeResponse,
 } from "@/app/api/v1/gemini/initialize/route";
 import MainLayout from "@/components/layout/MainLayout";
 import { API_ROUTES } from "@/constants/routes";
+import { GenerateContentResponseUsageMetadata } from "@google/genai";
 import axios, { AxiosError } from "axios";
 import React, { FormEvent, useEffect, useRef, useState } from "react";
 
@@ -21,7 +23,6 @@ export default function GeminiChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [initializingGemini, setInitializingGemini] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState<File | null>(null);
-  const [documentText, setDocumentText] = useState<string>("");
   const [documentStatus, setDocumentStatus] = useState<{
     hasDocument: boolean;
     textLength: number;
@@ -29,6 +30,10 @@ export default function GeminiChatPage() {
   }>({ hasDocument: false, textLength: 0, isInitialized: false });
 
   const [chatId, setChatId] = useState<string | undefined>();
+
+  const [usageMetadata, setUsageMetadata] = useState<
+    GenerateContentResponseUsageMetadata | undefined
+  >();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,8 +100,6 @@ export default function GeminiChatPage() {
       if (response.data.success) {
         // 문서 텍스트 저장 (클라이언트 상태)
         if (response.data.documentText) {
-          setDocumentText(response.data.documentText);
-
           // 로컬 스토리지에 문서 저장
           const documentKey =
             response.data.documentKey || `doc_${username}_${Date.now()}`;
@@ -143,7 +146,7 @@ export default function GeminiChatPage() {
           InitializeRequest
         >(API_ROUTES.GEMINI_INITIALIZE, {
           username: username,
-          documentText: documentText,
+          documentText: response.data.documentText,
         });
 
         if (
@@ -211,16 +214,38 @@ export default function GeminiChatPage() {
       const messageHistory = updatedMessages.map((msg) => msg.content);
 
       // API 호출
-      const response = await axios.post(API_ROUTES.GEMINI_CHAT, {
+      const newMessage = await axios.post<
+        ChatResponse,
+        { data: ChatResponse },
+        ChatRequest
+      >(API_ROUTES.GEMINI_CHAT, {
         messages: messageHistory,
         chatId: chatId,
       });
 
-      // 봇 응답 추가
-      setMessages([
-        ...updatedMessages,
-        { role: "bot" as const, content: response.data.response },
-      ]);
+      if (newMessage.data.success && newMessage.data.data) {
+        if (newMessage.data.data.usageMetadata) {
+          setUsageMetadata(newMessage.data.data.usageMetadata);
+        }
+
+        if (newMessage.data.data.text) {
+          setMessages([
+            ...updatedMessages,
+            {
+              role: "bot" as const,
+              content: newMessage.data.data.text,
+            },
+          ]);
+        }
+      } else {
+        setMessages([
+          ...updatedMessages,
+          {
+            role: "bot" as const,
+            content: "죄송합니다. 오류가 발생했습니다. 다시 시도해 주세요.",
+          },
+        ]);
+      }
     } catch (error) {
       console.error("챗봇 API 오류:", error);
       setMessages([
@@ -261,7 +286,6 @@ export default function GeminiChatPage() {
       }
 
       // 모든 상태 초기화
-      setDocumentText("");
       setUsername("");
       setSelectedPdf(null);
       setDocumentStatus({
@@ -292,13 +316,6 @@ export default function GeminiChatPage() {
     }
   };
 
-  // 메시지 목록이 업데이트될 때마다 스크롤을 맨 아래로 이동
-  useEffect(() => {
-    if (initializingGemini) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [initializingGemini]);
-
   // 로컬 스토리지에서 사용자 이름 가져오기
   useEffect(() => {
     const savedUsername = localStorage.getItem("gemini_chat_username");
@@ -312,7 +329,6 @@ export default function GeminiChatPage() {
       if (savedDocumentKey) {
         const savedDocumentText = localStorage.getItem(savedDocumentKey);
         if (savedDocumentText) {
-          setDocumentText(savedDocumentText);
           setDocumentStatus({
             hasDocument: true,
             textLength: savedDocumentText.length,
@@ -498,6 +514,23 @@ export default function GeminiChatPage() {
             )}
           </div>
         </div>
+        {usageMetadata && (
+          <div className="flex justify-end">
+            <p className="text-lg text-teal-400 mt-1">
+              프롬프트 토큰 사용량:{" "}
+              {usageMetadata.promptTokenCount?.toLocaleString()}
+            </p>
+            <br />
+            <p className="text-lg text-teal-400 mt-1">
+              총 토큰 사용량: {usageMetadata.totalTokenCount?.toLocaleString()}
+            </p>
+            <br />
+            <p className="text-lg text-teal-400 mt-1">
+              응답 토큰 사용량:{" "}
+              {usageMetadata.candidatesTokenCount?.toLocaleString()}
+            </p>
+          </div>
+        )}
 
         <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden shadow-lg shadow-slate-900/20">
           <div className="h-[50vh] overflow-y-auto p-6 space-y-6">
