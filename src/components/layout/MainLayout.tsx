@@ -3,11 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+interface MenuItem {
+  name: string;
+  path: string;
+  icon: React.ReactNode;
+  isVisible: boolean;
+}
+
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
-const menuItems = [
+const menuItems: MenuItem[] = [
   {
     name: "홈",
     path: "/",
@@ -26,6 +33,7 @@ const menuItems = [
         />
       </svg>
     ),
+    isVisible: true,
   },
   {
     name: "Gemini 챗봇",
@@ -45,6 +53,27 @@ const menuItems = [
         />
       </svg>
     ),
+    isVisible: false,
+  },
+  {
+    name: "Gemini 챗봇 (Static)",
+    path: "/gemini-chat-static",
+    icon: (
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+        />
+      </svg>
+    ),
+    isVisible: true,
   },
   {
     name: "인스타그램 포스트 에디터",
@@ -64,6 +93,7 @@ const menuItems = [
         />
       </svg>
     ),
+    isVisible: false,
   },
   {
     name: "Figma 컴포넌트 Prompt",
@@ -83,6 +113,7 @@ const menuItems = [
         />
       </svg>
     ),
+    isVisible: false,
   },
   {
     name: "뉴스 크롤러",
@@ -102,6 +133,7 @@ const menuItems = [
         />
       </svg>
     ),
+    isVisible: false,
   },
 ];
 
@@ -119,20 +151,23 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </h1>
           </div>
           <nav className="mt-4 px-3">
-            {menuItems.map((item) => (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={`flex items-center px-3 py-2 my-1 rounded-lg transition-colors ${
-                  pathname === item.path
-                    ? "bg-teal-500/20 text-teal-400"
-                    : "text-slate-300 hover:bg-slate-700/50 hover:text-teal-400"
-                }`}
-              >
-                {item.icon}
-                <span className="ml-3">{item.name}</span>
-              </Link>
-            ))}
+            {menuItems.map(
+              (item) =>
+                item.isVisible && (
+                  <Link
+                    key={item.path}
+                    href={item.path}
+                    className={`flex items-center px-3 py-2 my-1 rounded-lg transition-colors ${
+                      pathname === item.path
+                        ? "bg-teal-500/20 text-teal-400"
+                        : "text-slate-300 hover:bg-slate-700/50 hover:text-teal-400"
+                    }`}
+                  >
+                    {item.icon}
+                    <span className="ml-3">{item.name}</span>
+                  </Link>
+                )
+            )}
           </nav>
         </div>
 
