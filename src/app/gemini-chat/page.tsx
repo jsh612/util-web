@@ -33,9 +33,8 @@ export default function GeminiChatPage() {
 
   const [chatId, setChatId] = useState<string | undefined>();
 
-  const [usageMetadata, setUsageMetadata] = useState<
-    GenerateContentResponseUsageMetadata | undefined
-  >();
+  const [usageMetadata, setUsageMetadata] =
+    useState<GenerateContentResponseUsageMetadata | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -297,6 +296,8 @@ export default function GeminiChatPage() {
         textLength: 0,
         isInitialized: false,
       });
+
+      setUsageMetadata(null);
 
       // 채팅 메시지 초기화
       setMessages([]);

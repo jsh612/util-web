@@ -34,9 +34,8 @@ export default function GeminiChatPage() {
   const [initializingGemini, setInitializingGemini] = useState(false);
   const [chatId, setChatId] = useState<string | undefined>();
 
-  const [usageMetadata, setUsageMetadata] = useState<
-    GenerateContentResponseUsageMetadata | undefined
-  >();
+  const [usageMetadata, setUsageMetadata] =
+    useState<GenerateContentResponseUsageMetadata | null>();
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newUsername = e.target.value;
@@ -189,6 +188,8 @@ export default function GeminiChatPage() {
 
       // chatId 초기화
       setChatId(undefined);
+
+      setUsageMetadata(null);
 
       // 초기화 안내 메시지
       setMessages([
