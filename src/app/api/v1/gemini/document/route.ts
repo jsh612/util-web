@@ -1,6 +1,8 @@
-import { geminiChatManager } from "@/app/utils/gemini";
+import { getGeminiChatManager } from "@/app/utils/gemini";
 import { NextRequest, NextResponse } from "next/server";
 import * as pdfParse from "pdf-parse";
+
+const geminiChatManager = getGeminiChatManager();
 
 export const runtime = "nodejs";
 
