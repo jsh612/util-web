@@ -6,6 +6,7 @@ const geminiChatManager = getGeminiChatManager();
 export interface InitializeRequest {
   username: string;
   documentText?: string;
+  action: "initialize";
 }
 
 export interface InitializeResponse {
