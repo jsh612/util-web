@@ -11,8 +11,15 @@ import MainLayout from "@/components/layout/MainLayout";
 import { API_ROUTES } from "@/constants/routes";
 import { APP_DESCRIPTION, INCOME_TAX_LAW } from "@/constants/temp-data";
 import { GenerateContentResponseUsageMetadata } from "@google/genai";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import React, { FormEvent, useRef, useState } from "react";
+
+interface GeminiApiError {
+  error: {
+    code: number;
+    message: string;
+  };
+}
 
 interface Message {
   role: "user" | "bot";
@@ -34,9 +41,8 @@ export default function GeminiChatPage() {
   const [initializingGemini, setInitializingGemini] = useState(false);
   const [chatId, setChatId] = useState<string | undefined>();
 
-  const [usageMetadata, setUsageMetadata] = useState<
-    GenerateContentResponseUsageMetadata | undefined
-  >();
+  const [usageMetadata, setUsageMetadata] =
+    useState<GenerateContentResponseUsageMetadata | null>();
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newUsername = e.target.value;
@@ -161,12 +167,29 @@ export default function GeminiChatPage() {
           },
         ]);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Gemini 초기화 오류:", error);
+
+      let errorMessage = "죄송합니다. 일시적인 오류가 발생했습니다.";
+
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<GeminiApiError>;
+        if (axiosError.response?.data?.error?.code === 429) {
+          errorMessage = `현재 서비스 사용량이 많아 일시적으로 응답이 지연되고 있습니다.
+약 45초 후에 다시 시도해 주시기 바랍니다.
+(API 할당량 초과로 인한 일시적인 제한입니다)`;
+        } else if (
+          axiosError.response?.data?.error?.message?.includes("quota")
+        ) {
+          errorMessage = `현재 서비스 사용량이 많아 일시적으로 응답이 지연되고 있습니다.
+잠시 후에 다시 시도해 주시기 바랍니다.`;
+        }
+      }
+
       setMessages([
         {
           role: "bot",
-          content: "유효하지 않은 사용자 이름입니다. 다시 시도해 주세요.",
+          content: errorMessage,
         },
       ]);
       setInitializingGemini(false);
@@ -189,6 +212,8 @@ export default function GeminiChatPage() {
 
       // chatId 초기화
       setChatId(undefined);
+
+      setUsageMetadata(null);
 
       // 초기화 안내 메시지
       setMessages([
