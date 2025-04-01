@@ -26,6 +26,7 @@ const tools = [
     ),
     path: PAGE_ROUTES.GEMINI_CHAT,
     features: ["자연어 대화", "텍스트 기반 질의응답", "채팅 인터페이스"],
+    isVisible: false,
   },
   {
     title: "Gemini 챗봇 (Static)",
@@ -48,6 +49,7 @@ const tools = [
     ),
     path: PAGE_ROUTES.GEMINI_CHAT_STATIC,
     features: ["자연어 대화", "텍스트 기반 질의응답", "채팅 인터페이스"],
+    isVisible: true,
   },
   {
     title: "인스타그램 포스트 에디터",
@@ -74,6 +76,7 @@ const tools = [
       "텍스트 크기/색상 조정",
       "다중 이미지 생성",
     ],
+    isVisible: false,
   },
   {
     title: "Figma 컴포넌트 Prompt",
@@ -96,6 +99,7 @@ const tools = [
     ),
     path: PAGE_ROUTES.FIGMA,
     features: ["Figma URL 지원", "PDF 텍스트 추출", "상세 프롬프트 생성"],
+    isVisible: false,
   },
   {
     title: "뉴스 크롤러",
@@ -123,6 +127,7 @@ const tools = [
       "AP 뉴스 지원",
       "메타데이터 추출",
     ],
+    isVisible: false,
   },
 ];
 
@@ -142,46 +147,49 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-7xl">
-          {tools.map((tool) => (
-            <Link
-              key={tool.path}
-              href={tool.path}
-              className="group p-6 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 hover:border-teal-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-teal-500/10"
-            >
-              <div className="flex items-center mb-4">
-                <div className="p-3 rounded-xl bg-gradient-to-br from-teal-500/20 to-blue-500/20 text-teal-400">
-                  {tool.icon}
-                </div>
-                <h2 className="text-2xl font-bold text-slate-200 ml-4 group-hover:text-teal-400 transition-colors">
-                  {tool.title}
-                </h2>
-              </div>
-              <p className="text-slate-300 mb-4">{tool.description}</p>
-              <div className="space-y-2">
-                {tool.features.map((feature, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center text-sm text-slate-400"
-                  >
-                    <svg
-                      className="w-4 h-4 mr-2 text-teal-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    {feature}
+          {tools.map(
+            (tool) =>
+              tool.isVisible && (
+                <Link
+                  key={tool.path}
+                  href={tool.path}
+                  className="group p-6 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 hover:border-teal-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-teal-500/10"
+                >
+                  <div className="flex items-center mb-4">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-teal-500/20 to-blue-500/20 text-teal-400">
+                      {tool.icon}
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-200 ml-4 group-hover:text-teal-400 transition-colors">
+                      {tool.title}
+                    </h2>
                   </div>
-                ))}
-              </div>
-            </Link>
-          ))}
+                  <p className="text-slate-300 mb-4">{tool.description}</p>
+                  <div className="space-y-2">
+                    {tool.features.map((feature, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center text-sm text-slate-400"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-2 text-teal-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        {feature}
+                      </div>
+                    ))}
+                  </div>
+                </Link>
+              )
+          )}
         </div>
       </div>
     </MainLayout>
