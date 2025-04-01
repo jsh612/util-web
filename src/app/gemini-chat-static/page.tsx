@@ -219,26 +219,28 @@ export default function GeminiChatPage() {
               className="w-full py-2 px-3 bg-slate-700/30 border border-slate-600/50 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
             />
             {username && (
-              <p className="text-xs text-teal-400 mt-1">
+              <p className="text-lg text-teal-400 mt-1">
                 안녕하세요, {username}님!
               </p>
             )}
             {usageMetadata && (
-              <div className="flex justify-end">
-                <p className="text-lg text-teal-400 mt-1">
-                  프롬프트 토큰 사용량:{" "}
-                  {usageMetadata.promptTokenCount?.toLocaleString()}
-                </p>
-                <br />
-                <p className="text-lg text-teal-400 mt-1">
-                  총 토큰 사용량:{" "}
-                  {usageMetadata.totalTokenCount?.toLocaleString()}
-                </p>
-                <br />
-                <p className="text-lg text-teal-400 mt-1">
-                  응답 토큰 사용량:{" "}
-                  {usageMetadata.candidatesTokenCount?.toLocaleString()}
-                </p>
+              <div className="flex flex-col w-[200px]">
+                <div className="text-lg text-sky-400 mt-1 flex flex-row justify-between">
+                  <span>입력 토큰 사용량:</span>
+                  <span>
+                    {usageMetadata.promptTokenCount?.toLocaleString()}
+                  </span>
+                </div>
+                <div className="text-lg text-sky-400 mt-1 flex flex-row justify-between">
+                  <span>응답 토큰 사용량:</span>
+                  <span>
+                    {usageMetadata.candidatesTokenCount?.toLocaleString()}
+                  </span>
+                </div>
+                <div className="text-lg text-sky-400 mt-1 flex flex-row justify-between">
+                  <span>총 토큰 사용량:</span>
+                  <span>{usageMetadata.totalTokenCount?.toLocaleString()}</span>
+                </div>
               </div>
             )}
           </div>
