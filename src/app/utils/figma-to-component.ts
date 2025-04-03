@@ -3,6 +3,15 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { FigmaService } from "./figma";
 
+// 파일 생성 없이 컨텐츠만 생성하기 위한 인터페이스
+interface GenerateContentDto {
+  figmaUrl: string;
+  description?: string;
+  defaultPrompt: string;
+  files: File[];
+  extractedText?: string;
+}
+
 export class ComponentService {
   private figmaService: FigmaService;
 
@@ -59,7 +68,7 @@ export class ComponentService {
 
       // 첨부 파일 처리
       const savedFiles: string[] = [];
-      const generatedFiles: string[] = [promptPath]; // 생성된 파일 목록에 프롬프트 파일 추가
+      const generatedFiles: string[] = [promptPath];
 
       if (
         createComponentDto.files &&
@@ -109,6 +118,56 @@ export class ComponentService {
         throw error;
       }
       throw new Error("컴포넌트 생성 중 알 수 없는 오류가 발생했습니다.");
+    }
+  }
+
+  // 파일 생성 없이 컴포넌트 내용만 생성하는 메서드
+  async generateComponentContent(dto: GenerateContentDto): Promise<string> {
+    try {
+      // Figma URL에서 파일 ID와 노드 ID 추출
+      const urlPattern = /figma\.com\/design\/([^/]+).*node-id=([^&]+)/;
+      const matches = dto.figmaUrl.match(urlPattern);
+
+      if (!matches) {
+        throw new Error(
+          "올바른 Figma 파일 URL이 아닙니다. (예: https://www.figma.com/design/xxxxx?node-id=xxxx)"
+        );
+      }
+
+      const [, fileId, nodeId] = matches;
+      const cleanNodeId = nodeId.replace(/-/g, ":"); // 노드 ID 형식 변환 (25463-14451 -> 25463:14451)
+
+      // Figma 파일 데이터 가져오기
+      const figmaData = await this.figmaService.getFigmaFile(
+        fileId,
+        cleanNodeId
+      );
+
+      if (!figmaData || typeof figmaData !== "object") {
+        throw new Error("Figma API로부터 올바른 데이터를 받지 못했습니다.");
+      }
+
+      // Figma API 응답을 저장
+      const figmaApiResponse = JSON.stringify(figmaData, null, 2);
+
+      // 프롬프트 텍스트 생성
+      const promptText = `
+${dto.defaultPrompt}
+
+${dto.figmaUrl ? `# Figma URL:\n${dto.figmaUrl}\n` : ""}
+${figmaApiResponse ? `# Figma 디자인 정보:\n${figmaApiResponse}\n` : ""}
+   
+${dto.description ? `# 컴포넌트 설명:\n${dto.description}\n` : ""}
+
+${dto.extractedText ? `# 보충 설명:\n${dto.extractedText}\n` : ""}
+`.trim();
+
+      return promptText;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("컴포넌트 내용 생성 중 알 수 없는 오류가 발생했습니다.");
     }
   }
 

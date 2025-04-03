@@ -7,13 +7,10 @@ export class FigmaService {
 
   constructor() {
     const apiKey = process.env.FIGMA_ACCESS_TOKEN;
-    const apiKeySecondary = process.env.FIGMA_ACCESS_TOKEN_SECONDARY;
+    const apiKeySecondary = process.env.FIGMA_ACCESS_TOKEN_SECONDARY ?? "";
 
     if (!apiKey) {
       throw new Error("FIGMA_ACCESS_TOKEN is not defined");
-    }
-    if (!apiKeySecondary) {
-      throw new Error("FIGMA_ACCESS_TOKEN_SECONDARY is not defined");
     }
 
     this.apiKey = apiKey;
