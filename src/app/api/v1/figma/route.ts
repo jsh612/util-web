@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     const defaultPrompt = formData.get("defaultPrompt") as string;
     const files = formData.getAll("files") as File[];
     const extractedText = formData.get("extractedText") as string;
+    const preventFileCreation = formData.get("preventFileCreation") === "true";
 
     if (!figmaUrl || typeof figmaUrl !== "string") {
       return NextResponse.json(
@@ -83,6 +84,41 @@ export async function POST(request: NextRequest) {
     }
 
     const componentService = new ComponentService();
+
+    // 파일 생성 방지 모드인 경우
+    if (preventFileCreation) {
+      const promptText = await componentService.generateComponentContent({
+        figmaUrl,
+        description,
+        defaultPrompt,
+        files: validFiles,
+        extractedText,
+      });
+
+      // 추후 컴포넌트 생성 로직이 구현되면 실제 컴포넌트 코드를 반환
+      // 현재는 예시로 프롬프트 텍스트만 반환
+      return NextResponse.json({
+        success: true,
+        message: "컴포넌트 프롬프트가 생성되었습니다.",
+        componentData: [
+          {
+            fileName: "prompt.txt",
+            content: promptText,
+          },
+          // 실제 구현 시에는 아래와 같이 여러 파일 추가 가능
+          // {
+          //   fileName: "Component.tsx",
+          //   content: "// React component code here"
+          // },
+          // {
+          //   fileName: "styles.css",
+          //   content: "/* CSS styles here */"
+          // }
+        ],
+      });
+    }
+
+    // 기존 파일 생성 로직
     const result = await componentService.createComponent({
       figmaUrl,
       filePath,
