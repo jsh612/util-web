@@ -99,7 +99,7 @@ const tools = [
     ),
     path: PAGE_ROUTES.FIGMA,
     features: ["Figma URL 지원", "PDF 텍스트 추출", "상세 프롬프트 생성"],
-    isVisible: false,
+    isVisible: true,
   },
   {
     title: "뉴스 크롤러",

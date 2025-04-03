@@ -113,7 +113,7 @@ const menuItems: MenuItem[] = [
         />
       </svg>
     ),
-    isVisible: false,
+    isVisible: true,
   },
   {
     name: "뉴스 크롤러",
