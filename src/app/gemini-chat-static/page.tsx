@@ -9,7 +9,10 @@ import {
 
 import MainLayout from "@/components/layout/MainLayout";
 import { API_ROUTES } from "@/constants/routes";
-import { CORPORATE_TAX_LAW, INCOME_TAX_LAW } from "@/constants/temp-data";
+import {
+  CORPORATE_TAX_LAW,
+  INCOME_TAX_LAW,
+} from "@/constants/temp-data-content";
 
 import { GenerateContentResponseUsageMetadata } from "@google/genai";
 import axios, { AxiosError } from "axios";
