@@ -9,7 +9,8 @@ import {
 
 import MainLayout from "@/components/layout/MainLayout";
 import { API_ROUTES } from "@/constants/routes";
-import { APP_DESCRIPTION, INCOME_TAX_LAW } from "@/constants/temp-data";
+import { CORPORATE_TAX_LAW, INCOME_TAX_LAW } from "@/constants/temp-data";
+
 import { GenerateContentResponseUsageMetadata } from "@google/genai";
 import axios, { AxiosError } from "axios";
 import React, { FormEvent, useRef, useState } from "react";
@@ -26,14 +27,13 @@ interface Message {
   content: string;
 }
 
-type PolicyType = "파킹앱 정책" | "소득세법";
+type PolicyType = "법인세" | "소득세법";
 
 export default function GeminiChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [username, setUsername] = useState("");
-  const [selectedPolicy, setSelectedPolicy] =
-    useState<PolicyType>("파킹앱 정책");
+  const [selectedPolicy, setSelectedPolicy] = useState<PolicyType>("법인세");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
@@ -155,7 +155,7 @@ export default function GeminiChatPage() {
         action: "initialize",
         username: username,
         documentText:
-          selectedPolicy === "파킹앱 정책" ? APP_DESCRIPTION : INCOME_TAX_LAW,
+          selectedPolicy === "법인세" ? CORPORATE_TAX_LAW : INCOME_TAX_LAW,
       });
 
       if (response.data.success && response.data.chatId) {
