@@ -188,21 +188,19 @@ export default function GeminiChatPage() {
         ]);
       }
     } catch (error: unknown) {
-      console.error("Gemini 초기화 오류:", error);
-
       let errorMessage = "죄송합니다. 일시적인 오류가 발생했습니다.";
 
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError<GeminiApiError>;
-        if (axiosError.response?.data?.error?.code === 429) {
+
+        if (axiosError.status === 429) {
           errorMessage = `현재 서비스 사용량이 많아 일시적으로 응답이 지연되고 있습니다.
 약 45초 후에 다시 시도해 주시기 바랍니다.
 (API 할당량 초과로 인한 일시적인 제한입니다)`;
-        } else if (
-          axiosError.response?.data?.error?.message?.includes("quota")
-        ) {
+        } else if (axiosError.status === 403) {
           errorMessage = `현재 서비스 사용량이 많아 일시적으로 응답이 지연되고 있습니다.
 잠시 후에 다시 시도해 주시기 바랍니다.`;
+          errorMessage = "권한이 없는 사용자입니다.";
         }
       }
 
