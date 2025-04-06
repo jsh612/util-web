@@ -53,7 +53,7 @@ const menuItems: MenuItem[] = [
         />
       </svg>
     ),
-    isVisible: false,
+    isVisible: true,
   },
   {
     name: "Gemini 챗봇 (Static)",
@@ -93,7 +93,7 @@ const menuItems: MenuItem[] = [
         />
       </svg>
     ),
-    isVisible: false,
+    isVisible: true,
   },
   {
     name: "Figma 컴포넌트 Prompt",
@@ -133,7 +133,7 @@ const menuItems: MenuItem[] = [
         />
       </svg>
     ),
-    isVisible: false,
+    isVisible: true,
   },
 ];
 

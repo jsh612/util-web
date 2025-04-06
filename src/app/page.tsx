@@ -26,7 +26,7 @@ const tools = [
     ),
     path: PAGE_ROUTES.GEMINI_CHAT,
     features: ["자연어 대화", "텍스트 기반 질의응답", "채팅 인터페이스"],
-    isVisible: false,
+    isVisible: true,
   },
   {
     title: "Gemini 챗봇 (Static)",
@@ -76,7 +76,7 @@ const tools = [
       "텍스트 크기/색상 조정",
       "다중 이미지 생성",
     ],
-    isVisible: false,
+    isVisible: true,
   },
   {
     title: "Figma 컴포넌트 Prompt",
@@ -127,7 +127,7 @@ const tools = [
       "AP 뉴스 지원",
       "메타데이터 추출",
     ],
-    isVisible: false,
+    isVisible: true,
   },
 ];
 
