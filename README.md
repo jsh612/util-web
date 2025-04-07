@@ -222,3 +222,107 @@ src/
 ## 라이선스
 
 이 프로젝트는 MIT 라이선스 하에 배포됩니다.
+
+## 개발 환경 설정
+
+### 로컬 개발
+
+```bash
+# 종속성 설치
+yarn install
+
+# 개발 서버 실행
+yarn dev
+```
+
+### Docker를 사용한 개발
+
+```bash
+# 개발 환경 컨테이너 실행
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d web-dev
+
+# 로그 확인
+docker-compose logs -f web-dev
+```
+
+## 프로덕션 배포
+
+### Docker를 사용한 배포
+
+```bash
+# 프로덕션 빌드 및 실행
+docker-compose up -d --build
+
+# 로그 확인
+docker-compose logs -f web
+```
+
+## 폰트 관리
+
+이 프로젝트는 다음 폰트를 사용합니다:
+
+- Noto Sans KR
+- Nanum Gothic
+- Nanum Myeongjo
+- Nanum Pen Script
+- Nanum Brush Script
+- Pretendard
+- Spoqa Han Sans
+- Wanted Sans
+
+모든 폰트는 `src/fonts` 디렉토리에 로컬로 저장되어 있으며, Next.js의 `next/font` 기능을 사용하여 최적화됩니다.
+
+## 환경 변수 설정
+
+### Docker 컨테이너에서 환경 변수 관리
+
+환경 변수 파일(.env)을 Docker 이미지에 포함시키지 않고 관리하는 방법은 여러 가지가 있습니다:
+
+#### 1. docker-compose.yml 파일에 직접 설정
+
+```yaml
+services:
+  web:
+    environment:
+      - NODE_ENV=production
+      - API_URL=https://api.example.com
+      - NEXT_PUBLIC_ANALYTICS_ID=abcdef
+```
+
+#### 2. 외부 .env 파일 사용 (env_file 옵션)
+
+```yaml
+services:
+  web:
+    env_file:
+      - .env.production
+```
+
+#### 3. Docker 실행 시 환경 변수 파일 지정
+
+```bash
+# docker-compose 사용 시
+docker-compose --env-file .env.production up -d
+
+# docker run 사용 시
+docker run --env-file .env.production -p 4000:4000 util-web
+```
+
+#### 4. 볼륨을 통한 환경 변수 파일 마운트
+
+```yaml
+services:
+  web:
+    volumes:
+      - ./config/.env.production:/app/.env.production:ro
+```
+
+#### 5. 컨테이너 실행 시 환경 변수 직접 전달
+
+```bash
+# docker-compose 사용 시
+docker-compose run -e API_KEY=your_api_key -e DB_URL=your_db_url web
+
+# docker run 사용 시
+docker run -e API_KEY=your_api_key -e DB_URL=your_db_url -p 4000:4000 util-web
+```
