@@ -7,6 +7,7 @@ export const API_ROUTES = {
   INSTAGRAM_DEFAULT: "/api/v1/instagram-default",
   GEMINI_CHAT: "/api/v1/gemini/chat",
   GEMINI_DOCUMENT: "/api/v1/gemini/document",
+  RETRO_IMAGE: "/api/v1/image/retro",
 } as const;
 
 // Page Routes
@@ -18,6 +19,7 @@ export const PAGE_ROUTES = {
   IMAGE_EDITOR: "/image-editor",
   GEMINI_CHAT: "/gemini-chat",
   GEMINI_CHAT_STATIC: "/gemini-chat-static",
+  RETRO_IMAGE: "/retro-image",
 } as const;
 
 // API Base URL
