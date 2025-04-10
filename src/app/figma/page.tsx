@@ -266,24 +266,6 @@ export default function FigmaPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <label
-                htmlFor="fileName"
-                className="block text-sm font-medium text-slate-300 mb-2"
-              >
-                파일 이름
-              </label>
-              <input
-                type="text"
-                id="fileName"
-                name="fileName"
-                placeholder="기본값: prompt-file"
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-white placeholder-slate-400"
-              />
-            </div>
-          </div>
-
           <div>
             <label
               htmlFor="description"

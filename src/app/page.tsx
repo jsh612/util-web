@@ -158,6 +158,34 @@ const tools = [
     features: ["픽셀화 효과", "JPEG 압축", "노이즈 추가", "품질 조절"],
     isVisible: true,
   },
+  {
+    title: "포토부스 이미지 메이커",
+    description:
+      "인생네컷, 포토이즘 같은 포토부스 스타일의 사진을 직접 만들어보세요. 이미지 4장을 업로드하여 하나의 사진으로 병합합니다.",
+    icon: (
+      <svg
+        className="w-8 h-8"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+        />
+      </svg>
+    ),
+    path: PAGE_ROUTES.PHOTO_BOOTH,
+    features: [
+      "이미지 병합",
+      "순서 변경 가능",
+      "테두리/간격 조절",
+      "세로형/정사각형 레이아웃",
+    ],
+    isVisible: true,
+  },
 ];
 
 export default function Home() {
