@@ -1,3 +1,6 @@
+"use client";
+
+import MainLayout from "@/components/layout/MainLayout";
 import type { Metadata } from "next";
 import {
   Nanum_Brush_Script,
@@ -97,7 +100,9 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.1/packages/wanted-sans/fonts/webfonts/variable/complete/WantedSansVariable.min.css"
         />
       </head>
-      <body className="bg-slate-800 text-slate-200">{children}</body>
+      <body className="bg-slate-800 text-slate-200">
+        <MainLayout>{children}</MainLayout>
+      </body>
     </html>
   );
 }
