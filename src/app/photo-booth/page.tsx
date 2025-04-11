@@ -1,6 +1,5 @@
 "use client";
 
-import MainLayout from "@/components/layout/MainLayout";
 import { API_ROUTES } from "@/constants/routes";
 import axios from "axios";
 import Image from "next/image";
@@ -232,181 +231,179 @@ export default function PhotoBoothPage() {
   };
 
   return (
-    <MainLayout>
-      <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-extrabold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">
-          포토부스 이미지 메이커
-        </h1>
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-extrabold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">
+        포토부스 이미지 메이커
+      </h1>
 
-        <DndProvider backend={HTML5Backend}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-slate-200">설정</h2>
-                  <button
-                    onClick={resetSettings}
-                    className="px-3 py-1 bg-slate-600/70 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-all duration-300 flex items-center"
+      <DndProvider backend={HTML5Backend}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-slate-200">설정</h2>
+                <button
+                  onClick={resetSettings}
+                  className="px-3 py-1 bg-slate-600/70 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-all duration-300 flex items-center"
+                >
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
-                    <svg
-                      className="w-4 h-4 mr-1"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
-                    </svg>
-                    초기화
-                  </button>
-                </div>
-
-                <div className="space-y-5">
-                  <div className="mb-3">
-                    <p className="text-sm text-slate-300 mb-3">
-                      이미지를 드래그하여 순서를 변경할 수 있습니다.
-                    </p>
-                    {renderImageInputs()}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      레이아웃 스타일
-                    </label>
-                    <select
-                      value={layout}
-                      onChange={(e) => setLayout(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-                    >
-                      <option value="portrait">세로형 (인생네컷 스타일)</option>
-                      <option value="square">정사각형 (2x2 그리드)</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      테두리 색상
-                    </label>
-                    <div className="flex items-center space-x-4">
-                      <input
-                        type="color"
-                        value={borderColor}
-                        onChange={(e) => setBorderColor(e.target.value)}
-                        className="w-10 h-10 rounded-lg bg-transparent"
-                      />
-                      <span className="text-slate-300">{borderColor}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      사진 사이 간격 색상
-                    </label>
-                    <div className="flex items-center space-x-4">
-                      <input
-                        type="color"
-                        value={gapColor}
-                        onChange={(e) => setGapColor(e.target.value)}
-                        className="w-10 h-10 rounded-lg bg-transparent"
-                      />
-                      <span className="text-slate-300">{gapColor}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      간격 크기 - {gapSize}px
-                    </label>
-                    <input
-                      type="range"
-                      min={5}
-                      max={50}
-                      step={1}
-                      value={gapSize}
-                      onChange={(e) => setGapSize(Number(e.target.value))}
-                      className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      테두리 크기 - {borderSize}px
-                    </label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={5}
-                      value={borderSize}
-                      onChange={(e) => setBorderSize(Number(e.target.value))}
-                      className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
-                    />
-                  </div>
-
-                  <button
-                    onClick={processImages}
-                    disabled={images.some((img) => !img.file) || isLoading}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed font-medium shadow-lg hover:shadow-xl"
-                  >
-                    {isLoading ? "처리 중..." : "포토부스 이미지 생성"}
-                  </button>
-                </div>
+                  </svg>
+                  초기화
+                </button>
               </div>
-            </div>
 
-            <div className="space-y-6">
-              <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
-                <h2 className="text-xl font-semibold text-slate-200 mb-4">
-                  결과
-                </h2>
-                <div className="flex items-center justify-center min-h-80 bg-slate-800/50 rounded-lg border border-slate-600/50 overflow-hidden relative">
-                  {resultImage ? (
-                    <Image
-                      src={resultImage}
-                      alt="포토부스 이미지"
-                      width={400}
-                      height={layout === "portrait" ? 800 : 400}
-                      style={{ objectFit: "contain" }}
-                    />
-                  ) : (
-                    <span className="text-slate-400">
-                      4개의 이미지를 업로드하고 생성 버튼을 눌러주세요
-                    </span>
-                  )}
+              <div className="space-y-5">
+                <div className="mb-3">
+                  <p className="text-sm text-slate-300 mb-3">
+                    이미지를 드래그하여 순서를 변경할 수 있습니다.
+                  </p>
+                  {renderImageInputs()}
                 </div>
 
-                {resultImage && (
-                  <button
-                    onClick={downloadImage}
-                    className="w-full mt-4 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg hover:from-blue-700 hover:to-blue-900 transition-all duration-300 font-medium flex items-center justify-center"
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    레이아웃 스타일
+                  </label>
+                  <select
+                    value={layout}
+                    onChange={(e) => setLayout(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50"
                   >
-                    <svg
-                      className="w-5 h-5 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                      />
-                    </svg>
-                    이미지 다운로드
-                  </button>
-                )}
+                    <option value="portrait">세로형 (인생네컷 스타일)</option>
+                    <option value="square">정사각형 (2x2 그리드)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    테두리 색상
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <input
+                      type="color"
+                      value={borderColor}
+                      onChange={(e) => setBorderColor(e.target.value)}
+                      className="w-10 h-10 rounded-lg bg-transparent"
+                    />
+                    <span className="text-slate-300">{borderColor}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    사진 사이 간격 색상
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <input
+                      type="color"
+                      value={gapColor}
+                      onChange={(e) => setGapColor(e.target.value)}
+                      className="w-10 h-10 rounded-lg bg-transparent"
+                    />
+                    <span className="text-slate-300">{gapColor}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    간격 크기 - {gapSize}px
+                  </label>
+                  <input
+                    type="range"
+                    min={5}
+                    max={50}
+                    step={1}
+                    value={gapSize}
+                    onChange={(e) => setGapSize(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    테두리 크기 - {borderSize}px
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={borderSize}
+                    onChange={(e) => setBorderSize(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                  />
+                </div>
+
+                <button
+                  onClick={processImages}
+                  disabled={images.some((img) => !img.file) || isLoading}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed font-medium shadow-lg hover:shadow-xl"
+                >
+                  {isLoading ? "처리 중..." : "포토부스 이미지 생성"}
+                </button>
               </div>
             </div>
           </div>
-        </DndProvider>
-      </div>
-    </MainLayout>
+
+          <div className="space-y-6">
+            <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
+              <h2 className="text-xl font-semibold text-slate-200 mb-4">
+                결과
+              </h2>
+              <div className="flex items-center justify-center min-h-80 bg-slate-800/50 rounded-lg border border-slate-600/50 overflow-hidden relative">
+                {resultImage ? (
+                  <Image
+                    src={resultImage}
+                    alt="포토부스 이미지"
+                    width={400}
+                    height={layout === "portrait" ? 800 : 400}
+                    style={{ objectFit: "contain" }}
+                  />
+                ) : (
+                  <span className="text-slate-400">
+                    4개의 이미지를 업로드하고 생성 버튼을 눌러주세요
+                  </span>
+                )}
+              </div>
+
+              {resultImage && (
+                <button
+                  onClick={downloadImage}
+                  className="w-full mt-4 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg hover:from-blue-700 hover:to-blue-900 transition-all duration-300 font-medium flex items-center justify-center"
+                >
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  이미지 다운로드
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </DndProvider>
+    </div>
   );
 }

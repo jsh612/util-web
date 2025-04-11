@@ -1,6 +1,5 @@
 "use client";
 
-import MainLayout from "@/components/layout/MainLayout";
 import { PAGE_ROUTES } from "@/constants/routes";
 import Link from "next/link";
 
@@ -190,65 +189,63 @@ const tools = [
 
 export default function Home() {
   return (
-    <MainLayout>
-      <div className="flex flex-col items-center">
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">
-            Util Web
-          </h1>
-          <p className="text-xl text-slate-300 max-w-2xl">
-            웹 기반 유틸리티 도구 모음입니다.
-            <br />
-            필요한 도구를 선택하여 바로 사용해보세요.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-7xl">
-          {tools.map(
-            (tool) =>
-              tool.isVisible && (
-                <Link
-                  key={tool.path}
-                  href={tool.path}
-                  className="group p-6 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 hover:border-teal-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-teal-500/10"
-                >
-                  <div className="flex items-center mb-4">
-                    <div className="p-3 rounded-xl bg-gradient-to-br from-teal-500/20 to-blue-500/20 text-teal-400">
-                      {tool.icon}
-                    </div>
-                    <h2 className="text-2xl font-bold text-slate-200 ml-4 group-hover:text-teal-400 transition-colors">
-                      {tool.title}
-                    </h2>
-                  </div>
-                  <p className="text-slate-300 mb-4">{tool.description}</p>
-                  <div className="space-y-2">
-                    {tool.features.map((feature, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center text-sm text-slate-400"
-                      >
-                        <svg
-                          className="w-4 h-4 mr-2 text-teal-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        {feature}
-                      </div>
-                    ))}
-                  </div>
-                </Link>
-              )
-          )}
-        </div>
+    <div className="flex flex-col items-center">
+      <div className="text-center mb-16">
+        <h1 className="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">
+          Util Web
+        </h1>
+        <p className="text-xl text-slate-300 max-w-2xl">
+          웹 기반 유틸리티 도구 모음입니다.
+          <br />
+          필요한 도구를 선택하여 바로 사용해보세요.
+        </p>
       </div>
-    </MainLayout>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-7xl">
+        {tools.map(
+          (tool) =>
+            tool.isVisible && (
+              <Link
+                key={tool.path}
+                href={tool.path}
+                className="group p-6 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 hover:border-teal-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-teal-500/10"
+              >
+                <div className="flex items-center mb-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-teal-500/20 to-blue-500/20 text-teal-400">
+                    {tool.icon}
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-200 ml-4 group-hover:text-teal-400 transition-colors">
+                    {tool.title}
+                  </h2>
+                </div>
+                <p className="text-slate-300 mb-4">{tool.description}</p>
+                <div className="space-y-2">
+                  {tool.features.map((feature, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center text-sm text-slate-400"
+                    >
+                      <svg
+                        className="w-4 h-4 mr-2 text-teal-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+              </Link>
+            )
+        )}
+      </div>
+    </div>
   );
 }

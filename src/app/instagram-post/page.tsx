@@ -10,7 +10,6 @@ import ResultsSection from "@/components/instagram-post/ResultsSection";
 import StyleOptionsSection from "@/components/instagram-post/StyleOptionsSection";
 import SubmitButton from "@/components/instagram-post/SubmitButton";
 import TextInputSection from "@/components/instagram-post/TextInputSection";
-import MainLayout from "@/components/layout/MainLayout";
 import { API_ROUTES } from "@/constants/routes";
 import { ImageTextOptions } from "@/types/api.types";
 import { TextResult } from "@/types/instagram-post.types";
@@ -549,112 +548,105 @@ export default function InstagramPost() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <MainLayout>
-        <div className="container max-w-5xl mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-teal-400 mb-8">
-            인스타그램 포스트 에디터
-          </h1>
+      <div className="container max-w-5xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-teal-400 mb-8">
+          인스타그램 포스트 에디터
+        </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {error && (
-              <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200">
-                {error}
-              </div>
-            )}
-            <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg space-y-6">
-              <ImageUploadSection
-                selectedFile={selectedFile}
-                selectedBackgroundColor={selectedBackgroundColor}
-                previewImage={previewImage}
-                hasDefaultImage={hasDefaultImage}
-                handleImageUpload={handleImageUpload}
-                handleDefaultImageSelect={handleDefaultImageSelect}
-                handleDefaultImageChange={handleDefaultImageChange}
-                handleDefaultImageDelete={handleDefaultImageDelete}
-                handleRemoveFile={handleRemoveFile}
-                setIsDefaultImageModalOpen={setIsDefaultImageModalOpen}
-                setIsColorModalOpen={setIsColorModalOpen}
-                setSelectedBackgroundColor={setSelectedBackgroundColor}
-              />
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {error && (
+            <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200">
+              {error}
             </div>
-
-            <DefaultImageModal
-              isOpen={isDefaultImageModalOpen}
-              onClose={() => setIsDefaultImageModalOpen(false)}
-              onUploadSuccess={handleDefaultImageSelect}
-              setError={setError}
-              setHasDefaultImage={setHasDefaultImage}
-            />
-
-            <ColorModal
-              isOpen={isColorModalOpen}
-              onClose={() => setIsColorModalOpen(false)}
-              onColorSelect={handleColorSelect}
-              backgroundColors={Array.from(BACKGROUND_COLORS)}
-            />
-
-            <div className="mb-8 p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-slate-200">
-                  텍스트 입력
-                </h2>
-                <ResetButton onClick={resetTextInputs} label="텍스트 초기화" />
-              </div>
-              <TextInputSection
-                textOptions={textOptions}
-                setTextOptions={setTextOptions}
-                multipleTextMode={multipleTextMode}
-                setMultipleTextMode={setMultipleTextMode}
-                textInputs={textInputs}
-                setTextInputs={setTextInputs}
-                jsonInput={jsonInput}
-                setJsonInput={setJsonInput}
-                jsonError={jsonError}
-                setJsonError={setJsonError}
-              />
-            </div>
-
-            <div className="mb-8 p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-slate-200">
-                  텍스트 스타일
-                </h2>
-                <ResetButton
-                  onClick={resetStyleOptions}
-                  label="스타일 초기화"
-                />
-              </div>
-              <StyleOptionsSection
-                textOptions={textOptions}
-                setTextOptions={setTextOptions}
-              />
-            </div>
-
-            <div className="flex justify-center mt-6">
-              <SubmitButton
-                loading={loading}
-                selectedFile={selectedFile}
-                selectedBackgroundColor={selectedBackgroundColor}
-                textOptions={textOptions}
-                multipleTextMode={multipleTextMode}
-                textInputs={textInputs}
-                jsonInput={jsonInput}
-              />
-            </div>
-          </form>
-
-          {results.length > 0 && (
-            <ResultsSection
-              results={results}
-              setResults={setResults}
-              downloadLoading={downloadLoading}
-              handleBulkDownload={handleBulkDownload}
-              handleDownload={handleDownload}
-              handleRemoveResult={handleRemoveResult}
-            />
           )}
-        </div>
-      </MainLayout>
+          <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg space-y-6">
+            <ImageUploadSection
+              selectedFile={selectedFile}
+              selectedBackgroundColor={selectedBackgroundColor}
+              previewImage={previewImage}
+              hasDefaultImage={hasDefaultImage}
+              handleImageUpload={handleImageUpload}
+              handleDefaultImageSelect={handleDefaultImageSelect}
+              handleDefaultImageChange={handleDefaultImageChange}
+              handleDefaultImageDelete={handleDefaultImageDelete}
+              handleRemoveFile={handleRemoveFile}
+              setIsDefaultImageModalOpen={setIsDefaultImageModalOpen}
+              setIsColorModalOpen={setIsColorModalOpen}
+              setSelectedBackgroundColor={setSelectedBackgroundColor}
+            />
+          </div>
+
+          <DefaultImageModal
+            isOpen={isDefaultImageModalOpen}
+            onClose={() => setIsDefaultImageModalOpen(false)}
+            onUploadSuccess={handleDefaultImageSelect}
+            setError={setError}
+            setHasDefaultImage={setHasDefaultImage}
+          />
+
+          <ColorModal
+            isOpen={isColorModalOpen}
+            onClose={() => setIsColorModalOpen(false)}
+            onColorSelect={handleColorSelect}
+            backgroundColors={Array.from(BACKGROUND_COLORS)}
+          />
+
+          <div className="mb-8 p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-slate-200">텍스트 입력</h2>
+              <ResetButton onClick={resetTextInputs} label="텍스트 초기화" />
+            </div>
+            <TextInputSection
+              textOptions={textOptions}
+              setTextOptions={setTextOptions}
+              multipleTextMode={multipleTextMode}
+              setMultipleTextMode={setMultipleTextMode}
+              textInputs={textInputs}
+              setTextInputs={setTextInputs}
+              jsonInput={jsonInput}
+              setJsonInput={setJsonInput}
+              jsonError={jsonError}
+              setJsonError={setJsonError}
+            />
+          </div>
+
+          <div className="mb-8 p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-slate-200">
+                텍스트 스타일
+              </h2>
+              <ResetButton onClick={resetStyleOptions} label="스타일 초기화" />
+            </div>
+            <StyleOptionsSection
+              textOptions={textOptions}
+              setTextOptions={setTextOptions}
+            />
+          </div>
+
+          <div className="flex justify-center mt-6">
+            <SubmitButton
+              loading={loading}
+              selectedFile={selectedFile}
+              selectedBackgroundColor={selectedBackgroundColor}
+              textOptions={textOptions}
+              multipleTextMode={multipleTextMode}
+              textInputs={textInputs}
+              jsonInput={jsonInput}
+            />
+          </div>
+        </form>
+
+        {results.length > 0 && (
+          <ResultsSection
+            results={results}
+            setResults={setResults}
+            downloadLoading={downloadLoading}
+            handleBulkDownload={handleBulkDownload}
+            handleDownload={handleDownload}
+            handleRemoveResult={handleRemoveResult}
+          />
+        )}
+      </div>
     </DndProvider>
   );
 }
