@@ -1,7 +1,6 @@
 "use client";
 
 import MainLayout from "@/components/layout/MainLayout";
-import type { Metadata } from "next";
 import {
   Nanum_Brush_Script,
   Nanum_Gothic,
@@ -46,27 +45,6 @@ const nanumBrushScript = Nanum_Brush_Script({
   variable: "--font-nanum-brush",
   preload: true,
 });
-
-export const metadata: Metadata = {
-  title: "유틸리티 웹",
-  description: "유용한 웹 도구 모음",
-  icons: {
-    icon: [
-      {
-        url: "/favicon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: {
-      url: "/favicon.svg",
-      type: "image/svg+xml",
-    },
-    shortcut: {
-      url: "/favicon.svg",
-      type: "image/svg+xml",
-    },
-  },
-};
 
 export default function RootLayout({
   children,

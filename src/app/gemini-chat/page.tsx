@@ -1,11 +1,10 @@
 "use client";
 
 import {
-  ChatRequest,
-  ChatResponse,
-  InitializeRequest,
-  InitializeResponse,
-} from "@/app/api/v1/gemini/chat/route";
+  generateChatResponse,
+  initializeGeminiChat,
+  setDocumentContext,
+} from "@/app/utils/actions/gemini-actions";
 
 import { API_ROUTES } from "@/constants/routes";
 import { GenerateContentResponseUsageMetadata } from "@google/genai";
@@ -98,6 +97,7 @@ export default function GeminiChatPage() {
       };
       setMessages((prevMessages) => [...prevMessages, processingMessage]);
 
+      // PDF 파일 텍스트 추출을 위한 API 호출 (파일 업로드는 API 필요)
       const response = await axios.post(API_ROUTES.GEMINI_DOCUMENT, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -146,22 +146,18 @@ export default function GeminiChatPage() {
 
         setSelectedPdf(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
-        // API 호출 - 문서 컨텍스트도 함께 전송
-        const chatSessionResponse = await axios.post<
-          InitializeResponse,
-          { data: InitializeResponse },
-          InitializeRequest
-        >(API_ROUTES.GEMINI_CHAT, {
-          action: "initialize",
-          username: username,
-          documentText: response.data.documentText,
-        });
 
-        if (
-          chatSessionResponse.data.success &&
-          chatSessionResponse.data.chatId
-        ) {
-          setChatId(chatSessionResponse.data.chatId);
+        // 서버 액션으로 변경: 문서 컨텍스트 설정
+        await setDocumentContext(username, response.data.documentText);
+
+        // 서버 액션으로 변경: 채팅 세션 초기화
+        const chatSessionResponse = await initializeGeminiChat(
+          username,
+          response.data.documentText
+        );
+
+        if (chatSessionResponse.success && chatSessionResponse.chatId) {
+          setChatId(chatSessionResponse.chatId);
         }
       }
     } catch (error: unknown) {
@@ -231,29 +227,18 @@ export default function GeminiChatPage() {
       // API 요청에 필요한 메시지 형식으로 변환
       const messageHistory = updatedMessages.map((msg) => msg.content);
 
-      // API 호출
-      const newMessage = await axios.post<
-        ChatResponse,
-        { data: ChatResponse },
-        ChatRequest
-      >(API_ROUTES.GEMINI_CHAT, {
-        action: "chat",
-        messages: messageHistory,
-        chatId: chatId,
-      });
+      // 서버 액션으로 변경
+      const response = await generateChatResponse(messageHistory, chatId);
 
-      if (newMessage.data.success && newMessage.data.data) {
-        if (newMessage.data.data.usageMetadata) {
-          setUsageMetadata(newMessage.data.data.usageMetadata);
+      if (response.success && response.data) {
+        if (response.data.usageMetadata) {
+          setUsageMetadata(response.data.usageMetadata);
         }
 
-        if (newMessage.data.data.text) {
+        if (response.data.text) {
           setMessages([
             ...updatedMessages,
-            {
-              role: "bot" as const,
-              content: newMessage.data.data.text,
-            },
+            { role: "bot" as const, content: response.data.text },
           ]);
         }
       } else {
@@ -261,38 +246,36 @@ export default function GeminiChatPage() {
           ...updatedMessages,
           {
             role: "bot" as const,
-            content: "죄송합니다. 오류가 발생했습니다. 다시 시도해 주세요.",
+            content:
+              response.error ||
+              "죄송합니다. 오류가 발생했습니다. 다시 시도해 주세요.",
           },
         ]);
       }
     } catch (error: unknown) {
+      console.error("메시지 처리 중 오류:", error);
+
       let errorMessage = "죄송합니다. 일시적인 오류가 발생했습니다.";
 
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<GeminiApiError>;
-        if (axiosError.response?.data?.error?.code === 429) {
+      if (error instanceof Error) {
+        // 오류 처리 로직 유지
+        if (error.message.includes("429") || error.message.includes("quota")) {
           errorMessage = `현재 서비스 사용량이 많아 일시적으로 응답이 지연되고 있습니다.
 약 45초 후에 다시 시도해 주시기 바랍니다.
 (API 할당량 초과로 인한 일시적인 제한입니다)`;
-        } else if (
-          axiosError.response?.data?.error?.message?.includes("quota")
-        ) {
-          errorMessage = `현재 서비스 사용량이 많아 일시적으로 응답이 지연되고 있습니다.
-잠시 후에 다시 시도해 주시기 바랍니다.`;
         }
       }
 
       setMessages([
         ...updatedMessages,
-        {
-          role: "bot" as const,
-          content: errorMessage,
-        },
+        { role: "bot" as const, content: errorMessage },
       ]);
     } finally {
       setIsLoading(false);
-      // 응답 완료 후 입력란으로 포커스 이동
       setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
         if (chatInputRef.current) {
           chatInputRef.current.focus();
         }

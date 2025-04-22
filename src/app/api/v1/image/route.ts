@@ -11,8 +11,8 @@ async function generateHtml(
   backgroundColor?: string
 ): Promise<string> {
   const titleY = Math.floor(height * 0.2);
-  const titleLineHeight = (textOptions.titleFontSize ?? 64) * 1.4;
-  const textLineHeight = (textOptions.textFontSize ?? 48) * 1.6;
+  const titleLineHeight = (textOptions.titleFontSize ?? 55) * 1.4;
+  const textLineHeight = (textOptions.textFontSize ?? 45) * 1.6;
   const spaceBetweenTitleAndText = Math.max(titleLineHeight, textLineHeight);
 
   let textY: number;

@@ -1,4 +1,4 @@
-import { Chat, GoogleGenAI } from "@google/genai";
+import { Chat, ContentListUnion, GoogleGenAI } from "@google/genai";
 
 // Gemini API 키 설정
 const API_KEY = process.env.GEMINI_API_KEY || "";
@@ -8,6 +8,8 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
 // Google Generative AI 인스턴스 생성
 export const genAI = new GoogleGenAI({ apiKey: API_KEY });
+
+// genAI.models.generateContent를 직접 사용할 수 있는 함수 export
 
 // 사용자별 채팅 기록 저장
 interface UserChat {
@@ -62,6 +64,23 @@ export class GeminiChatManager {
   private extractUsername(message: string): string | null {
     const match = message.match(/^\[사용자:\s*([^\]]+)\]/);
     return match ? match[1].trim() : null;
+  }
+
+  public async generateContentFromModel({
+    contents,
+  }: {
+    contents: ContentListUnion;
+  }) {
+    return await genAI.models.generateContent({
+      model: GEMINI_MODEL,
+      contents,
+      config: {
+        temperature: 1,
+        maxOutputTokens: 3000,
+        topK: 40,
+        topP: 0.8,
+      },
+    });
   }
 
   /**

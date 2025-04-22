@@ -1,28 +1,17 @@
 "use client";
 
 import {
-  ChatRequest,
-  ChatResponse,
-  InitializeRequest,
-  InitializeResponse,
-} from "@/app/api/v1/gemini/chat/route";
+  generateChatResponse,
+  initializeGeminiChat,
+} from "@/app/utils/actions/gemini-actions";
 
-import { API_ROUTES } from "@/constants/routes";
 import {
   CORPORATE_TAX_LAW,
   INCOME_TAX_LAW,
 } from "@/constants/temp-data-content";
 
 import { GenerateContentResponseUsageMetadata } from "@google/genai";
-import axios, { AxiosError } from "axios";
 import React, { FormEvent, useRef, useState } from "react";
-
-interface GeminiApiError {
-  error: {
-    code: number;
-    message: string;
-  };
-}
 
 interface Message {
   role: "user" | "bot";
@@ -80,27 +69,19 @@ export default function GeminiChatPage() {
     try {
       const messageHistory = updatedMessages.map((msg) => msg.content);
 
-      const newMessage = await axios.post<
-        ChatResponse,
-        { data: ChatResponse },
-        ChatRequest
-      >(API_ROUTES.GEMINI_CHAT, {
-        action: "chat",
-        messages: messageHistory,
-        chatId: chatId,
-      });
+      const response = await generateChatResponse(messageHistory, chatId);
 
-      if (newMessage.data.success && newMessage.data.data) {
-        if (newMessage.data.data.usageMetadata) {
-          setUsageMetadata(newMessage.data.data.usageMetadata);
+      if (response.success && response.data) {
+        if (response.data.usageMetadata) {
+          setUsageMetadata(response.data.usageMetadata);
         }
 
-        if (newMessage.data.data.text) {
+        if (response.data.text) {
           setMessages([
             ...updatedMessages,
             {
               role: "bot" as const,
-              content: newMessage.data.data.text,
+              content: response.data.text,
             },
           ]);
         }
@@ -109,24 +90,20 @@ export default function GeminiChatPage() {
           ...updatedMessages,
           {
             role: "bot" as const,
-            content: "죄송합니다. 오류가 발생했습니다. 다시 시도해 주세요.",
+            content:
+              response.error ||
+              "죄송합니다. 오류가 발생했습니다. 다시 시도해 주세요.",
           },
         ]);
       }
     } catch (error: unknown) {
       let errorMessage = "죄송합니다. 일시적인 오류가 발생했습니다.";
 
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<GeminiApiError>;
-        if (axiosError.response?.data?.error?.code === 429) {
+      if (error instanceof Error) {
+        if (error.message.includes("429") || error.message.includes("quota")) {
           errorMessage = `현재 서비스 사용량이 많아 일시적으로 응답이 지연되고 있습니다.
 약 45초 후에 다시 시도해 주시기 바랍니다.
 (API 할당량 초과로 인한 일시적인 제한입니다)`;
-        } else if (
-          axiosError.response?.data?.error?.message?.includes("quota")
-        ) {
-          errorMessage = `현재 서비스 사용량이 많아 일시적으로 응답이 지연되고 있습니다.
-잠시 후에 다시 시도해 주시기 바랍니다.`;
         }
       }
 
@@ -150,19 +127,14 @@ export default function GeminiChatPage() {
   const initializeGemini = async () => {
     try {
       setInitializingGemini(true);
-      const response = await axios.post<
-        InitializeResponse,
-        { data: InitializeResponse },
-        InitializeRequest
-      >(API_ROUTES.GEMINI_CHAT, {
-        action: "initialize",
-        username: username,
-        documentText:
-          selectedCategory === "법인세" ? CORPORATE_TAX_LAW : INCOME_TAX_LAW,
-      });
 
-      if (response.data.success && response.data.chatId) {
-        setChatId(response.data.chatId);
+      const response = await initializeGeminiChat(
+        username,
+        selectedCategory === "법인세" ? CORPORATE_TAX_LAW : INCOME_TAX_LAW
+      );
+
+      if (response.success && response.chatId) {
+        setChatId(response.chatId);
         setInitializingGemini(false);
         setMessages([
           {
@@ -182,24 +154,20 @@ export default function GeminiChatPage() {
             role: "bot",
             content:
               "채팅 초기화에 실패했습니다: " +
-              (response.data.error || "알 수 없는 오류"),
+              (response.error || "알 수 없는 오류"),
           },
         ]);
       }
     } catch (error: unknown) {
       let errorMessage = "죄송합니다. 일시적인 오류가 발생했습니다.";
 
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<GeminiApiError>;
-
-        if (axiosError.status === 429) {
+      if (error instanceof Error) {
+        if (error.message.includes("403")) {
+          errorMessage = "권한이 없는 사용자입니다.";
+        } else if (error.message.includes("429")) {
           errorMessage = `현재 서비스 사용량이 많아 일시적으로 응답이 지연되고 있습니다.
 약 45초 후에 다시 시도해 주시기 바랍니다.
 (API 할당량 초과로 인한 일시적인 제한입니다)`;
-        } else if (axiosError.status === 403) {
-          errorMessage = `현재 서비스 사용량이 많아 일시적으로 응답이 지연되고 있습니다.
-잠시 후에 다시 시도해 주시기 바랍니다.`;
-          errorMessage = "권한이 없는 사용자입니다.";
         }
       }
 
