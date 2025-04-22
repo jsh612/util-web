@@ -1,7 +1,10 @@
 "use server";
 
 import { getGeminiChatManager } from "@/app/utils/gemini";
-import { GenerateContentResponseUsageMetadata } from "@google/genai";
+import {
+  ContentListUnion,
+  GenerateContentResponseUsageMetadata,
+} from "@google/genai";
 import * as pdfParse from "pdf-parse";
 
 // 타입 정의
@@ -281,4 +284,13 @@ export async function getDocumentContext(
 export async function getDebugInfo() {
   const chatManager = getGeminiChatManager();
   return chatManager.getDebugInfo();
+}
+
+/**
+ * Gemini 모델 generateContent 직접 호출 함수
+ */
+export async function generateContentFromModel(contents: ContentListUnion) {
+  const chatManager = getGeminiChatManager();
+  const result = await chatManager.generateContentFromModel({ contents });
+  return result.text;
 }
