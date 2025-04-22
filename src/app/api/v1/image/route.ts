@@ -22,6 +22,7 @@ async function generateHtml(
   } else {
     textY = Math.floor(height * 0.4);
   }
+  textY = textY + 200;
 
   return `
     <!DOCTYPE html>
