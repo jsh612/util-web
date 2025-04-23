@@ -110,6 +110,7 @@ export default function TextInputSection({
     if (match) {
       jsonPart = match[0];
     }
+
     return jsonPart || "";
   }
 
@@ -175,6 +176,8 @@ export default function TextInputSection({
       - title에는 적절한 이모티콘 추가
       - content는 기사 내용에 분석 해서, 사람들이 이해하기 쉽도록, 간단하고 명료하게 두 줄 이내로 요약해줘
       - 줄바꿈 개행 문자는 포함시키지 말아줘
+      - json 형식에 맞춰서 출력해줘
+         - 큰따옴표("") 중첩시 이스케이프(\) 처리 해줘
 
    ## 세부 규칙
     1. 첫 번째 객체는 다음 내용에 따라 작성해줘
@@ -194,7 +197,7 @@ export default function TextInputSection({
       b. content: 해당 객체의 본문
       c. bottom 값은 추가 말아줘
   
-  # json 예시
+  # json 형식 예시
   [
     {
       "title": "러-우 전쟁 종전 기대감에 재건주 급등",
@@ -266,7 +269,7 @@ export default function TextInputSection({
   };
 
   // Gemini 결과를 다중 텍스트로 반영하는 함수
-  function handleApplyGeminiResultToMultiText() {
+  const handleApplyGeminiResultToMultiText = () => {
     try {
       const arr = JSON.parse(geminiResult ?? "");
       if (Array.isArray(arr)) {
@@ -290,7 +293,7 @@ export default function TextInputSection({
     } catch {
       alert("Gemini 결과가 올바른 JSON 형식이 아닙니다.");
     }
-  }
+  };
 
   return (
     <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg space-y-6">
@@ -664,7 +667,9 @@ export default function TextInputSection({
                           </label>
                           <textarea
                             value={input.title}
-                            readOnly
+                            onChange={(e) =>
+                              updateTextInput(index, "title", e.target.value)
+                            }
                             className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 resize-none"
                             rows={2}
                           />
@@ -675,7 +680,9 @@ export default function TextInputSection({
                           </label>
                           <textarea
                             value={input.content}
-                            readOnly
+                            onChange={(e) =>
+                              updateTextInput(index, "content", e.target.value)
+                            }
                             className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 resize-none"
                             rows={4}
                           />
@@ -686,7 +693,9 @@ export default function TextInputSection({
                           </label>
                           <textarea
                             value={input.bottom}
-                            readOnly
+                            onChange={(e) =>
+                              updateTextInput(index, "bottom", e.target.value)
+                            }
                             className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 resize-none"
                             rows={2}
                           />
