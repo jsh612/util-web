@@ -55,6 +55,8 @@ export interface ProcessPdfResponse {
 // 허용된 사용자 목록
 const validUsers = process.env.TEMP_PASSIBLE_USER?.split(",") || [];
 
+const geminiManager = getGeminiChatManager();
+
 /**
  * PDF 파일 처리 함수
  */
@@ -127,8 +129,7 @@ export async function processPdfDocument(
           : extractedText;
 
       // 사용자 문서 컨텍스트 설정
-      const chatManager = getGeminiChatManager();
-      const result = chatManager.setDocumentContext(username, trimmedText);
+      const result = geminiManager.setDocumentContext(username, trimmedText);
 
       if (!result.success) {
         return {
@@ -138,7 +139,7 @@ export async function processPdfDocument(
       }
 
       // 설정 후 문서 상태 다시 확인
-      const contextCheck = chatManager.getDocumentContext(username);
+      const contextCheck = geminiManager.getDocumentContext(username);
       const isInitialized = contextCheck.success && contextCheck.hasDocument;
 
       return {
@@ -197,8 +198,7 @@ export async function initializeGeminiChat(
     };
   }
 
-  const chatManager = getGeminiChatManager();
-  return await chatManager.initializeGeminiChat(username, documentText);
+  return await geminiManager.initializeGeminiChat(username, documentText);
 }
 
 /**
@@ -215,8 +215,7 @@ export async function generateChatResponse(
     };
   }
 
-  const chatManager = getGeminiChatManager();
-  return await chatManager.generateChatResponse(messages, chatId);
+  return await geminiManager.generateChatResponse(messages, chatId);
 }
 
 /**
@@ -233,8 +232,7 @@ export async function setDocumentContext(
     };
   }
 
-  const chatManager = getGeminiChatManager();
-  return chatManager.setDocumentContext(username, documentText);
+  return geminiManager.setDocumentContext(username, documentText);
 }
 
 /**
@@ -250,8 +248,7 @@ export async function getDocumentContext(
     };
   }
 
-  const chatManager = getGeminiChatManager();
-  const result = chatManager.getDocumentContext(username);
+  const result = geminiManager.getDocumentContext(username);
 
   // 사용자 정보가 없는 경우에도 오류 대신 빈 상태 반환
   if (!result.success) {
@@ -282,15 +279,15 @@ export async function getDocumentContext(
  * 디버그 정보 가져오기 함수
  */
 export async function getDebugInfo() {
-  const chatManager = getGeminiChatManager();
-  return chatManager.getDebugInfo();
+  return geminiManager.getDebugInfo();
 }
 
 /**
  * Gemini 모델 generateContent 직접 호출 함수
  */
 export async function generateContentFromModel(contents: ContentListUnion) {
-  const chatManager = getGeminiChatManager();
-  const result = await chatManager.generateContentFromModel({ contents });
+  const result = await geminiManager.generateContentFromModel({
+    contents,
+  });
   return result.text;
 }

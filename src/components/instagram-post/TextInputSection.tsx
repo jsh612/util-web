@@ -1,6 +1,7 @@
 "use client";
 
 import { generateContentFromModel } from "@/app/utils/actions/gemini-actions";
+import { API_ROUTES } from "@/constants/routes";
 import { CrawlResponse, ImageTextOptions } from "@/types/api.types";
 import { ContentListUnion } from "@google/genai";
 import { useState } from "react";
@@ -121,9 +122,13 @@ export default function TextInputSection({
     setArticleData(null);
     setGeminiResult(null);
     setGeminiError(null);
+    setTextInputs([]);
+    setInstaBody("");
+    setInstaTags("");
+
     try {
       const res = await fetch(
-        `/api/v1/crawler?url=${encodeURIComponent(
+        `${API_ROUTES.CRAWLER}?url=${encodeURIComponent(
           encodeURIComponent(articleUrl)
         )}`
       );
@@ -178,6 +183,7 @@ export default function TextInputSection({
       - 줄바꿈 개행 문자는 포함시키지 말아줘
       - json 형식에 맞춰서 출력해줘
          - 큰따옴표("") 중첩시 이스케이프(\) 처리 해줘
+         - 기타 json 형식에 안맞는 부분 있다면 수정해서 보여줘
 
    ## 세부 규칙
     1. 첫 번째 객체는 다음 내용에 따라 작성해줘
@@ -223,8 +229,8 @@ export default function TextInputSection({
   ]
   
   # 인스타 게시용 태그 및 본문 내용 추천
-  1. 다음 태그를 기본값으로 하고, 추가로 기사 내용과 어울리는 사람들에게 잘 노출될 태그 만들어줘
-   - 예시: #주식 #코스피 #코스닥 #나스닥 #재테크 #경제 #뉴스
+  1. 다음 기본값을 기본으로 하고, 추가로 기사 내용과 어울리는 사람들에게 잘 노출될 태그 만들어줘
+   - 기본값: #주식 #코스피 #코스닥 #나스닥 #재테크 #경제 #뉴스
    - 양식
       <Tag>
       #주식 #코스피 #코스닥 #나스닥 #재테크 #경제 #뉴스
