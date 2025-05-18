@@ -18,7 +18,7 @@ export async function GET() {
     }
 
     const imageBuffer = await readFile(DEFAULT_IMAGE_PATH + ".png");
-    return new NextResponse(imageBuffer, {
+    return new NextResponse(imageBuffer as unknown as BodyInit, {
       headers: {
         "Content-Type": "image/png",
       },
