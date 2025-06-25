@@ -181,6 +181,27 @@ const menuItems: MenuItem[] = [
     ),
     isVisible: true,
   },
+  {
+    name: "쇼츠 스크립트 생성기",
+    path: "/shorts-generator",
+    icon: (
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.636 5.636a9 9 0 0112.728 0m-12.728 0a9 9 0 000 12.728m0-12.728L12 12l-6.364-6.364z"
+        ></path>
+      </svg>
+    ),
+    isVisible: true,
+  },
 ];
 export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();

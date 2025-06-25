@@ -9,6 +9,7 @@ export const API_ROUTES = {
   GEMINI_DOCUMENT: "/api/v1/gemini/document",
   RETRO_IMAGE: "/api/v1/image/retro",
   PHOTO_BOOTH: "/api/v1/image/photo-booth",
+  FILES: "/api/v1/files",
 } as const;
 
 // Page Routes
@@ -22,6 +23,7 @@ export const PAGE_ROUTES = {
   GEMINI_CHAT_STATIC: "/gemini-chat-static",
   RETRO_IMAGE: "/retro-image",
   PHOTO_BOOTH: "/photo-booth",
+  SHORTS_GENERATOR: "/shorts-generator",
 } as const;
 
 // API Base URL
