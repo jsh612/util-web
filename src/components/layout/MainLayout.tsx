@@ -182,7 +182,7 @@ const menuItems: MenuItem[] = [
     isVisible: true,
   },
   {
-    name: "유튜브 쇼츠 스크립트 생성기",
+    name: "쇼츠 스크립트 생성기",
     path: "/shorts-generator",
     icon: (
       <svg
