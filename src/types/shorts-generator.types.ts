@@ -7,5 +7,6 @@ export interface Scene {
 
 export interface ShortsScript {
   scenes: Scene[];
+  shorts_title: string;
   shorts_description: string;
 }

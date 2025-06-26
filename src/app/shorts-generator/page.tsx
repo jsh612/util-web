@@ -7,13 +7,14 @@ import { useState } from "react";
 
 const SYSTEM_INSTRUCTION = `당신은 유튜브 쇼츠 비디오 스크립트를 작성하는 전문 작가입니다.
 주어진 주제에 대해 시청자의 흥미를 끌 수 있는 최소 8개 이상의 장면으로 구성된 스크립트를 작성해야 합니다.
-각 장면은 다음 5가지 요소를 반드시 포함해야 합니다:
+각 장면은 다음 6가지 요소를 반드시 포함해야 합니다:
 
 1.  **자막 (subtitle)**: 화면에 표시될 짧고 간결한 텍스트 (1~2문장)
 2.  **이미지 프롬프트 (image_prompt)**: 장면에 어울리는 이미지를 생성하기 위한 상세한 영어로 작성된 프롬프트 (Gemini, Dall-E 또는 Midjourney와 같은 이미지 생성 AI가 이해할 수 있는 형식)
 3.  **나레이션 (narration)**: 성우가 읽을 대본 (1~3문장)
 4.  **장면 (scene)**: 장면은 최소 8개 이상으로 구성해줘
-5.  **쇼츠 설명 (shorts_description)**: 생성된 스크립트 내용을 바탕으로, 사람들의 흥미를 유발하고 클릭을 유도할 만한 유튜브 쇼츠 설명글을 1~2문장으로 작성해줘. (적절한 이모티콘과 줄바꿈 포함)
+5.  **쇼츠 제목 (shorts_title)**: 생성된 스크립트 내용을 바탕으로, 사람들의 호기심을 자극하고 클릭을 유도할 만한 '후킹'이 강력한 유튜브 쇼츠 제목을 1개 작성해줘.
+6.  **쇼츠 설명 (shorts_description)**: 생성된 스크립트 내용을 바탕으로, 사람들의 흥미를 유발하고 클릭을 유도할 만한 유튜브 쇼츠 설명글을 1~2문장으로 작성해줘. (적절한 이모티콘과 줄바꿈 포함)
 
 결과는 반드시 다음 JSON 형식으로 반환해야 합니다. 추가적인 설명 없이 JSON 객체만 반환해주세요.
 
@@ -54,6 +55,7 @@ const SYSTEM_INSTRUCTION = `당신은 유튜브 쇼츠 비디오 스크립트를
       "narration": "..."
     }
   ],
+  "shorts_title": "...",
   "shorts_description": "..."
 }
 \`\`\`
@@ -119,9 +121,12 @@ export default function ShortsGeneratorPage() {
     setScript({ ...script, scenes: updatedScenes });
   };
 
-  const handleDescriptionChange = (value: string) => {
+  const handleScriptMetaChange = (
+    field: "shorts_title" | "shorts_description",
+    value: string
+  ) => {
     if (!script) return;
-    setScript({ ...script, shorts_description: value });
+    setScript({ ...script, [field]: value });
   };
 
   const handleRecommend = async (e: React.FormEvent) => {
@@ -362,12 +367,38 @@ export default function ShortsGeneratorPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-400 mb-1">
+                쇼츠 제목
+              </label>
+              <div className="flex items-start space-x-2">
+                <textarea
+                  value={script.shorts_title}
+                  onChange={(e) =>
+                    handleScriptMetaChange("shorts_title", e.target.value)
+                  }
+                  className="w-full flex-grow p-3 bg-slate-900 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition"
+                  rows={2}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopy(script.shorts_title, `shorts-title`)
+                  }
+                  className="p-2 bg-slate-600 hover:bg-slate-500 rounded-md w-12 h-10 flex items-center justify-center shrink-0"
+                >
+                  {copiedText === `shorts-title` ? "✅" : "📋"}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-1">
                 쇼츠 설명
               </label>
               <div className="flex items-start space-x-2">
                 <textarea
                   value={script.shorts_description}
-                  onChange={(e) => handleDescriptionChange(e.target.value)}
+                  onChange={(e) =>
+                    handleScriptMetaChange("shorts_description", e.target.value)
+                  }
                   className="w-full flex-grow p-3 bg-slate-900 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition"
                   rows={3}
                 />
