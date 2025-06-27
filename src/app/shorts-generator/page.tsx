@@ -90,9 +90,14 @@ export default function ShortsGeneratorPage() {
   const [jsonScriptInput, setJsonScriptInput] = useState("");
   const [jsonScriptError, setJsonScriptError] = useState<string | null>(null);
 
+  const DEFAULT_COMMON_PROMPTS = [
+    "모든 사람들이 편안하게 볼 수 있고, 익숙하고 귀여운 의인화된 강아지 캐릭터를 활용한 애니메이션으로 스타일로 만들어줘",
+    "극사실적인 실사 스타일의 이미지, 고화질, 자연스러운 조명, 디테일한 표현",
+  ];
+
   // 공통 이미지 프롬프트 상태
   const [commonImagePrompt, setCommonImagePrompt] = useState(
-    "모든 사람들이 편안하게 볼 수 있고, 익숙하고 귀여운 의인화된 강아지 캐릭터를 활용한 애니메이션으로 스타일로 만들어줘"
+    DEFAULT_COMMON_PROMPTS[0]
   );
 
   // 주제 추천 기능 상태
@@ -370,6 +375,22 @@ export default function ShortsGeneratorPage() {
             모든 장면에 공통적으로 적용될 이미지 스타일이나 요소를 입력해주세요.
             (예: &quot;cinematic, hyper-realistic, 8k&quot;)
           </p>
+          <div className="flex flex-wrap gap-2 my-3">
+            {DEFAULT_COMMON_PROMPTS.map((prompt, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => setCommonImagePrompt(prompt)}
+                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                  commonImagePrompt === prompt
+                    ? "bg-teal-500 text-white font-semibold"
+                    : "bg-slate-600 text-slate-300 hover:bg-slate-500"
+                }`}
+              >
+                기본 프롬프트 #{index + 1}
+              </button>
+            ))}
+          </div>
           <textarea
             id="common-prompt-input"
             value={commonImagePrompt}
