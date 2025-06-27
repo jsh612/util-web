@@ -6,19 +6,19 @@ import { ContentListUnion } from "@google/genai";
 import { useState } from "react";
 
 const SYSTEM_INSTRUCTION = `당신은 유튜브 쇼츠 비디오 스크립트를 작성하는 전문 작가입니다.
-주어진 주제에 대해 시청자의 흥미를 끌 수 있는 최소 8개 이상의 장면으로 구성된 스크립트를 작성해야 합니다.
+주어진 주제에 대해 시청자의 흥미를 끌 수 있는 최소 6개 이상의 장면으로 구성된 스크립트를 작성해야 합니다.
 각 장면은 다음 6가지 요소를 반드시 포함해야 합니다:
 
-1.  **자막 (subtitle)**: 화면에 표시될 짧고 간결한 텍스트 (1~2문장)
-2.  **이미지 프롬프트 (image_prompt)**: 장면에 어울리는 이미지를 생성하기 위한 상세한 영어로 작성된 프롬프트 (Gemini, Dall-E 또는 Midjourney와 같은 이미지 생성 AI가 이해할 수 있는 형식)
-3.  **나레이션 (narration)**: 성우가 읽을 대본 (1~3문장)
-4.  **장면 (scene)**: 장면은 최소 8개 이상으로 구성해줘
+1.  **자막 (subtitle)**: 매우 코믹하고, 현실적인 내용으로 화면에 표시될 짧고 간결한 텍스트 (1~2문장)
+2.  **이미지 프롬프트 (image_prompt)**: 장면에 어울리는 이미지를 생성하기 위한 상세한 영어로 작성된 프롬프트로서, 최대한 상세하게 묘사 (Gemini, Dall-E 또는 Midjourney와 같은 이미지 생성 AI가 이해할 수 있는 형식)
+3.  **나레이션 (narration)**:  매우 코믹하고, 현실적인 내용으로, 쇼츠의 주인공이 말하는 대사야 (한 문장)
+4.  **장면 (scene)**: 장면은 최소 6개 이상으로 구성해줘
 5.  **쇼츠 제목 (shorts_title)**: 생성된 스크립트 내용을 바탕으로, 사람들의 호기심을 자극하고 클릭을 유도할 만한 '후킹'이 강력한 유튜브 쇼츠 제목을 1개 작성해줘.
 6.  **쇼츠 설명 (shorts_description)**: 생성된 스크립트 내용을 바탕으로, 사람들의 흥미를 유발하고 클릭을 유도할 만한 유튜브 쇼츠 설명글을 1~2문장으로 작성해줘. (적절한 이모티콘과 줄바꿈 포함)
 
 결과는 반드시 다음 JSON 형식으로 반환해야 합니다. 추가적인 설명 없이 JSON 객체만 반환해주세요.
 
-# json 반환시 주의사항
+# 결과 반환시 주의사항
 - 반드시 json 형식에 맞도록 반환해줘
 
 \`\`\`json
@@ -63,7 +63,7 @@ const SYSTEM_INSTRUCTION = `당신은 유튜브 쇼츠 비디오 스크립트를
 
 const RECOMMENDATION_SYSTEM_INSTRUCTION = `당신은 유튜브 쇼츠 콘텐츠 기획 전문가입니다.
 사용자가 입력한 키워드나 문장을 바탕으로, 시청자들의 호기심을 자극하고 클릭을 유도할 수 있는 '후킹'이 강력한 유튜브 쇼츠 영상 주제 5개를 추천해주세요.
-각 주제는 "절대 후회 안 하는 OOO 5가지" 또는 "99%가 모르는 OOO의 비밀"과 같은 형식으로, 구체적인 숫자나 강력한 표현을 사용하는 것이 좋습니다.
+요즘 인스타그램, 유튜브에서 인기있는 주제로 선택해주세요.
 결과는 반드시 다음 JSON 형식으로 반환해야 합니다. 추가적인 설명 없이 JSON 객체만 반환해주세요.
 
 \`\`\`json
@@ -86,9 +86,13 @@ export default function ShortsGeneratorPage() {
   const [script, setScript] = useState<ShortsScript | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
+  // JSON으로 직접 입력
+  const [jsonScriptInput, setJsonScriptInput] = useState("");
+  const [jsonScriptError, setJsonScriptError] = useState<string | null>(null);
+
   // 공통 이미지 프롬프트 상태
   const [commonImagePrompt, setCommonImagePrompt] = useState(
-    "모든 사람들이 편안하게 볼 수 있고, 익숙하고 귀여운 의인화된 강아지 캐릭터를 활용한 디즈니 애니메이션으로 스타일로 만들어줘"
+    "모든 사람들이 편안하게 볼 수 있고, 익숙하고 귀여운 의인화된 강아지 캐릭터를 활용한 애니메이션으로 스타일로 만들어줘"
   );
 
   // 주제 추천 기능 상태
@@ -127,6 +131,46 @@ export default function ShortsGeneratorPage() {
   ) => {
     if (!script) return;
     setScript({ ...script, [field]: value });
+  };
+
+  const handleDeleteScene = (sceneIndex: number) => {
+    if (!script) return;
+    const updatedScenes = script.scenes
+      .filter((_, i) => i !== sceneIndex)
+      .map((s, i) => ({
+        ...s,
+        scene: i + 1,
+      }));
+    setScript({ ...script, scenes: updatedScenes });
+  };
+
+  const handleJsonScriptLoad = () => {
+    if (!jsonScriptInput.trim()) {
+      setJsonScriptError("JSON을 입력해주세요.");
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(jsonScriptInput);
+      if (
+        parsed &&
+        Array.isArray(parsed.scenes) &&
+        typeof parsed.shorts_title === "string" &&
+        typeof parsed.shorts_description === "string"
+      ) {
+        setScript(parsed);
+        setJsonScriptError(null);
+        setJsonScriptInput(""); // 성공 시 입력창 초기화
+      } else {
+        throw new Error(
+          "JSON 형식이 올바르지 않습니다. 'scenes', 'shorts_title', 'shorts_description' 필드를 확인해주세요."
+        );
+      }
+    } catch (e) {
+      setJsonScriptError(
+        e instanceof Error ? e.message : "유효하지 않은 JSON 형식입니다."
+      );
+    }
   };
 
   const handleRecommend = async (e: React.FormEvent) => {
@@ -207,7 +251,7 @@ export default function ShortsGeneratorPage() {
         commonImagePrompt
           ? `\n\nB.공통 이미지 프롬프트
           1. 이미지에 텍스트는 포함시키지말아줘. 해당 규칙은 개별 프롬프트에 모두 추가해줘.
-          2. 모든 이미지 프롬프트는 개별적으로 이미지 생성 ai에 쓰일거야. 따라서, 개별적으로 사용되더라도 통일성있는 이미지 생성을 위하여 최대 얼굴, 키, 몸무게, 덩치, 옷, 헤어스타일 등 이미지 생성에 필요한 모든 요소를 구체적인 설명을 포함시켜줘.
+          2. 모든 이미지 프롬프트는 개별적으로 이미지 생성 ai에 쓰일거야. 따라서, 개별적으로 사용되더라도 통일성있는 이미지 생성을 위하여 최대 배경, 사물, 캐릭터, 인물 등 이미지 생성에 필요한 모든 요소를 상세하고, 구체적인 묘사해줘.
           3. ${commonImagePrompt}`
           : ""
       }`;
@@ -345,6 +389,39 @@ export default function ShortsGeneratorPage() {
         </div>
       </form>
 
+      <div className="my-8">
+        <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg space-y-4">
+          <h2 className="text-xl font-bold text-slate-200">
+            JSON으로 스크립트 직접 입력
+          </h2>
+          <p className="text-slate-400">
+            기존에 생성했거나 직접 작성한 스크립트 JSON을 붙여넣기하여 수정할 수
+            있습니다.
+          </p>
+          <textarea
+            value={jsonScriptInput}
+            onChange={(e) => setJsonScriptInput(e.target.value)}
+            placeholder={`{\n  "scenes": [...],\n  "shorts_title": "...",\n  "shorts_description": "..."\n}`}
+            className="w-full p-3 bg-slate-800 border border-slate-600 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition font-mono text-sm"
+            rows={6}
+          />
+          {jsonScriptError && (
+            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm">
+              {jsonScriptError}
+            </div>
+          )}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleJsonScriptLoad}
+              className="px-6 py-2 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 transition-colors"
+            >
+              스크립트 불러오기
+            </button>
+          </div>
+        </div>
+      </div>
+
       {script && (
         <div className="mt-8 p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg space-y-6">
           <div className="flex justify-between items-center mb-4">
@@ -420,9 +497,18 @@ export default function ShortsGeneratorPage() {
               key={scene.scene}
               className="p-4 bg-slate-800/50 rounded-lg border border-slate-700"
             >
-              <h3 className="text-xl font-semibold text-teal-400 mb-3">
-                장면 #{scene.scene}
-              </h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-xl font-semibold text-teal-400">
+                  장면 #{scene.scene}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteScene(index)}
+                  className="px-3 py-1 text-sm bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  삭제
+                </button>
+              </div>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-400 mb-1">
