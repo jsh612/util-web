@@ -17,12 +17,12 @@ export interface ComponentResponse {
 }
 
 export interface CrawlResponse {
-  type: "naver" | "cnn" | "ap";
+  url: string;
   title: string;
   content: string;
+  publisher?: string;
+  author?: string;
   date?: string;
-  publisher: string;
-  author: string;
 }
 
 export interface ImageTextOptions {

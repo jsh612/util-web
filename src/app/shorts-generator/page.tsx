@@ -1,18 +1,20 @@
 "use client";
 
 import { generateContentFromModel } from "@/app/utils/actions/gemini-actions";
+import { API_ROUTES } from "@/constants/routes";
+import { CrawlResponse } from "@/types/api.types";
 import { ShortsScript } from "@/types/shorts-generator.types";
 import { ContentListUnion } from "@google/genai";
 import { useState } from "react";
 
 const SYSTEM_INSTRUCTION = `당신은 유튜브 쇼츠 비디오 스크립트를 작성하는 전문 작가입니다.
-주어진 주제에 대해 시청자의 흥미를 끌 수 있는 최소 5개 이상의 장면으로 구성된 스크립트를 작성해야 합니다.
+주어진 주제에 대해 시청자의 흥미를 끌 수 있는 {{scene_count}}개의 장면으로 구성된 스크립트를 작성해야 합니다.
 각 장면은 다음 6가지 요소를 반드시 포함해야 합니다:
 
 1.  **자막 (subtitle)**: 매우 코믹하고, 현실적인 내용으로 화면에 표시될 짧고 간결한 텍스트 (1~2문장)
 2.  **이미지 프롬프트 (image_prompt)**: 장면에 어울리는 이미지를 생성하기 위한 상세한 영어로 작성된 프롬프트로서, 최대한 상세하게 묘사 (Gemini, Dall-E 또는 Midjourney와 같은 이미지 생성 AI가 이해할 수 있는 형식)
 3.  **나레이션 (narration)**:  매우 코믹하고, 현실적인 내용으로, 쇼츠의 주인공이 말하는 대사야 (한 문장)
-4.  **장면 (scene)**: 장면은 최소 5개 이상으로 구성해줘
+4.  **장면 (scene)**: 장면은 {{scene_count}}개로 구성해줘
 5.  **쇼츠 제목 (shorts_title)**: 생성된 스크립트 내용을 바탕으로, 사람들의 호기심을 자극하고 클릭을 유도할 만한 '후킹'이 강력한 유튜브 쇼츠 제목을 1개 작성해줘.
 6.  **쇼츠 설명 (shorts_description)**: 생성된 스크립트 내용을 바탕으로, 사람들의 흥미를 유발하고 클릭을 유도할 만한 유튜브 쇼츠 설명글을 1~2문장으로 작성해줘. (적절한 이모티콘과 줄바꿈 포함)
 
@@ -29,31 +31,42 @@ const SYSTEM_INSTRUCTION = `당신은 유튜브 쇼츠 비디오 스크립트를
       "subtitle": "...",
       "image_prompt": "...",
       "narration": "..."
-    },
+    }
+    // ... 여기에 {{scene_count}}개의 장면을 생성해주세요.
+  ],
+  "shorts_title": "...",
+  "shorts_description": "..."
+}
+\`\`\`
+`;
+
+const SYSTEM_INSTRUCTION_FOR_NEWS = `당신은 뉴스 기사를 유튜브 쇼츠 비디오 스크립트로 재구성하는 전문 작가입니다.
+주어진 뉴스 기사 내용을 바탕으로, 시청자의 흥미를 끌 수 있는 {{scene_count}}개의 장면으로 구성된 스크립트를 작성해야 합니다.
+각 장면은 다음 6가지 요소를 반드시 포함해야 합니다:
+
+1.  **자막 (subtitle)**: 뉴스 기사의 핵심 내용을 전달하는 짧고 간결한 텍스트 (1~2문장)
+2.  **이미지 프롬프트 (image_prompt)**: 뉴스 장면에 어울리는 이미지를 생성하기 위한 상세한 영어로 작성된 프롬프트 (Gemini, Dall-E 또는 Midjourney와 같은 이미지 생성 AI가 이해할 수 있는 형식)
+3.  **나레이션 (narration)**: 뉴스 앵커나 전문 기자가 설명하는 듯한 톤의 대본 (1~3문장)
+4.  **장면 (scene)**: 장면은 {{scene_count}}개로 구성해줘
+5.  **쇼츠 제목 (shorts_title)**: 뉴스 기사 내용을 바탕으로, 사람들의 호기심을 자극하고 클릭을 유도할 만한 '후킹'이 강력한 유튜브 쇼츠 제목을 1개 작성해줘.
+6.  **쇼츠 설명 (shorts_description)**: 생성된 스크립트 내용을 바탕으로, 사람들의 흥미를 유발하고 클릭을 유도할 만한 유튜브 쇼츠 설명글을 1~2문장으로 작성해줘. (적절한 이모티콘과 줄바꿈 포함, 관련 뉴스 해시태그 포함)
+
+결과는 반드시 다음 JSON 형식으로 반환해야 합니다. 추가적인 설명 없이 JSON 객체만 반환해주세요.
+
+# 결과 반환시 주의사항
+- 반드시 json 형식에 맞도록 반환해줘
+- 첫 번째 장면은 사람들의 시선을 사로잡을 가장 핵심적이고 흥미로운 내용으로 구성해줘.
+
+\`\`\`json
+{
+  "scenes": [
     {
-      "scene": 2,
-      "subtitle": "...",
-      "image_prompt": "...",
-      "narration": "..."
-    },
-    {
-      "scene": 3,
-      "subtitle": "...",
-      "image_prompt": "...",
-      "narration": "..."
-    },
-    {
-      "scene": 4,
-      "subtitle": "...",
-      "image_prompt": "...",
-      "narration": "..."
-    },
-    {
-      "scene": 5,
+      "scene": 1,
       "subtitle": "...",
       "image_prompt": "...",
       "narration": "..."
     }
+    // ... 여기에 {{scene_count}}개의 장면을 생성해주세요.
   ],
   "shorts_title": "...",
   "shorts_description": "..."
@@ -90,9 +103,19 @@ export default function ShortsGeneratorPage() {
   const [jsonScriptInput, setJsonScriptInput] = useState("");
   const [jsonScriptError, setJsonScriptError] = useState<string | null>(null);
 
+  // 생성 모드 상태 (일반, 뉴스)
+  const [generationMode, setGenerationMode] = useState<"general" | "news">(
+    "general"
+  );
+  // 뉴스 기사 URL 상태
+  const [articleUrl, setArticleUrl] = useState("");
+  const [sceneCount, setSceneCount] = useState(5);
+
   const DEFAULT_COMMON_PROMPTS = [
-    "모든 사람들이 편안하게 볼 수 있고, 익숙하고 귀여운 의인화된 강아지 캐릭터를 활용한 애니메이션으로 스타일로 만들어줘",
-    "극사실적인 실사 스타일의 이미지, 고화질, 자연스러운 조명, 디테일한 표현",
+    "따뜻하고 매력적인 디즈니 애니메이션 스타일, 귀엽고 표정이 풍부한 의인화된 강아지 캐릭터, 생동감 있는 색상, 부드러운 조명",
+    `1. 한국인 인물이 등장하는 극사실적인 실사 스타일, 시네마틱한 구도, 8K 고해상도, 자연광을 활용한 부드러운 조명, 피부 질감과 머리카락 한 올까지 살아있는 섬세한 묘사 
+2. Generate a photo of a real person, not an illustration or cartoon.
+    `,
   ];
 
   // 공통 이미지 프롬프트 상태
@@ -242,9 +265,16 @@ export default function ShortsGeneratorPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!topic.trim()) {
-      setError("주제를 입력해주세요.");
-      return;
+    if (generationMode === "general") {
+      if (!topic.trim()) {
+        setError("주제를 입력해주세요.");
+        return;
+      }
+    } else if (generationMode === "news") {
+      if (!articleUrl.trim()) {
+        setError("기사 URL을 입력해주세요.");
+        return;
+      }
     }
 
     setLoading(true);
@@ -252,14 +282,52 @@ export default function ShortsGeneratorPage() {
     setScript(null);
 
     try {
-      const prompt = `${SYSTEM_INSTRUCTION}\n\nA.주제: ${topic}${
-        commonImagePrompt
-          ? `\n\nB.공통 이미지 프롬프트
+      const systemInstruction = (
+        generationMode === "general"
+          ? SYSTEM_INSTRUCTION
+          : SYSTEM_INSTRUCTION_FOR_NEWS
+      ).replace(/\{\{scene_count\}\}/g, String(sceneCount));
+
+      let prompt = "";
+      if (generationMode === "general") {
+        prompt = `${systemInstruction}\n\nA.주제: ${topic}${
+          commonImagePrompt
+            ? `\n\nB.공통 이미지 프롬프트
           1. 이미지에 텍스트는 포함시키지말아줘. 해당 규칙은 개별 프롬프트에 모두 추가해줘.
           2. 모든 이미지 프롬프트는 개별적으로 이미지 생성 ai에 쓰일거야. 따라서, 개별적으로 사용되더라도 통일성있는 이미지 생성을 위하여 최대 배경, 사물, 캐릭터, 인물 등 이미지 생성에 필요한 모든 요소를 상세하고, 구체적인 묘사해줘.
           3. ${commonImagePrompt}`
-          : ""
-      }`;
+            : ""
+        }`;
+      } else {
+        // 뉴스 모드
+        const res = await fetch(
+          `${API_ROUTES.CRAWLER}?url=${encodeURIComponent(
+            encodeURIComponent(articleUrl)
+          )}`
+        );
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "기사 크롤링에 실패했습니다.");
+        }
+        const articleData: CrawlResponse = await res.json();
+        prompt = `${systemInstruction}
+
+# 뉴스 기사 원문
+- 제목: ${articleData.title}
+- 내용: ${articleData.content}
+- 언론사: ${articleData.publisher}
+- 작성자: ${articleData.author}
+- 날짜: ${articleData.date}
+        
+${
+  commonImagePrompt
+    ? `\n\n# 공통 이미지 프롬프트
+          1. 이미지에 텍스트는 포함시키지말아줘. 해당 규칙은 개별 프롬프트에 모두 추가해줘.
+          2. 모든 이미지 프롬프트는 개별적으로 이미지 생성 ai에 쓰일거야. 따라서, 개별적으로 사용되더라도 통일성있는 이미지 생성을 위하여 최대 배경, 사물, 캐릭터, 인물 등 이미지 생성에 필요한 모든 요소를 상세하고, 구체적인 묘사해줘.
+          3. ${commonImagePrompt}`
+    : ""
+}`;
+      }
 
       const contents: ContentListUnion = [
         {
@@ -304,70 +372,137 @@ export default function ShortsGeneratorPage() {
         유튜브 쇼츠 스크립트 생성기
       </h1>
 
-      <form onSubmit={handleRecommend} className="space-y-4 mb-12">
-        <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg space-y-4">
-          <h2 className="text-xl font-bold text-slate-200">✨ AI 주제 추천</h2>
-          <p className="text-slate-400">
-            어떤 주제로 쇼츠를 만들지 막막하신가요? 키워드를 입력하면 AI가
-            매력적인 주제를 추천해 드립니다.
-          </p>
-          <textarea
-            value={recommendationInput}
-            onChange={(e) => setRecommendationInput(e.target.value)}
-            placeholder="예: 강아지, 우주, 코딩 꿀팁"
-            className="w-full p-3 bg-slate-800 border border-slate-600 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition"
-            rows={2}
-          />
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={recommendationLoading || !recommendationInput.trim()}
-              className="px-6 py-2 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 disabled:bg-slate-500 disabled:cursor-not-allowed transition-colors"
-            >
-              {recommendationLoading ? "추천받는 중..." : "추천받기"}
-            </button>
-          </div>
-        </div>
-        {recommendationError && (
-          <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm">
-            {recommendationError}
-          </div>
-        )}
-        {recommendedTopics.length > 0 && (
-          <div className="p-4 bg-slate-800/30 rounded-xl space-y-3">
-            <h3 className="text-lg font-semibold text-slate-300">추천 주제:</h3>
-            <div className="flex flex-wrap gap-2">
-              {recommendedTopics.map((item, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => handleTopicSelect(item)}
-                  className="px-4 py-2 bg-teal-500/20 text-teal-300 rounded-full hover:bg-teal-500/40 hover:text-white transition-colors"
-                >
-                  {item}
-                </button>
-              ))}
+      {generationMode === "general" && (
+        <form onSubmit={handleRecommend} className="space-y-4 mb-12">
+          <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg space-y-4">
+            <h2 className="text-xl font-bold text-slate-200">
+              ✨ AI 주제 추천
+            </h2>
+            <p className="text-slate-400">
+              어떤 주제로 쇼츠를 만들지 막막하신가요? 키워드를 입력하면 AI가
+              매력적인 주제를 추천해 드립니다.
+            </p>
+            <textarea
+              value={recommendationInput}
+              onChange={(e) => setRecommendationInput(e.target.value)}
+              placeholder="예: 강아지, 우주, 코딩 꿀팁"
+              className="w-full p-3 bg-slate-800 border border-slate-600 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition"
+              rows={2}
+            />
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={recommendationLoading || !recommendationInput.trim()}
+                className="px-6 py-2 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 disabled:bg-slate-500 disabled:cursor-not-allowed transition-colors"
+              >
+                {recommendationLoading ? "추천받는 중..." : "추천받기"}
+              </button>
             </div>
           </div>
-        )}
-      </form>
+          {recommendationError && (
+            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm">
+              {recommendationError}
+            </div>
+          )}
+          {recommendedTopics.length > 0 && (
+            <div className="p-4 bg-slate-800/30 rounded-xl space-y-3">
+              <h3 className="text-lg font-semibold text-slate-300">
+                추천 주제:
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {recommendedTopics.map((item, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleTopicSelect(item)}
+                    className="px-4 py-2 bg-teal-500/20 text-teal-300 rounded-full hover:bg-teal-500/40 hover:text-white transition-colors"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </form>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {error && (
-          <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200">
-            {error}
-          </div>
-        )}
         <div className="p-6 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-lg space-y-6">
-          <h2 className="text-xl font-bold text-slate-200">주제 입력</h2>
-          <textarea
-            id="main-topic-input"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="예: 우주에 대한 10가지 놀라운 사실"
-            className="w-full p-3 bg-slate-800 border border-slate-600 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition"
-            rows={3}
-          />
+          <h2 className="text-xl font-bold text-slate-200 mb-4">
+            생성 모드 선택
+          </h2>
+          <div className="flex space-x-4">
+            <button
+              type="button"
+              onClick={() => setGenerationMode("general")}
+              className={`px-6 py-2 rounded-lg border text-base font-semibold transition-all ${
+                generationMode === "general"
+                  ? "bg-teal-500 border-teal-400 text-white shadow-lg shadow-teal-500/20"
+                  : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+              }`}
+            >
+              일반 쇼츠
+            </button>
+            <button
+              type="button"
+              onClick={() => setGenerationMode("news")}
+              className={`px-6 py-2 rounded-lg border text-base font-semibold transition-all ${
+                generationMode === "news"
+                  ? "bg-teal-500 border-teal-400 text-white shadow-lg shadow-teal-500/20"
+                  : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+              }`}
+            >
+              뉴스 쇼츠
+            </button>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {generationMode === "general" ? (
+              <div>
+                <h2 className="text-xl font-bold text-slate-200">주제 입력</h2>
+                <textarea
+                  id="main-topic-input"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="예: 우주에 대한 10가지 놀라운 사실"
+                  className="w-full p-3 bg-slate-800 border border-slate-600 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition mt-2"
+                  rows={5}
+                />
+              </div>
+            ) : (
+              <div>
+                <h2 className="text-xl font-bold text-slate-200">
+                  뉴스 기사 URL 입력
+                </h2>
+                <input
+                  id="main-topic-input"
+                  value={articleUrl}
+                  onChange={(e) => setArticleUrl(e.target.value)}
+                  placeholder="예: https://www.bloter.net/news/articleView.html?idxno=..."
+                  className="w-full p-3 bg-slate-800 border border-slate-600 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition mt-2"
+                />
+              </div>
+            )}
+            <div>
+              <h2 className="text-xl font-bold text-slate-200">장면 수</h2>
+              <input
+                id="scene-count-input"
+                type="number"
+                value={sceneCount}
+                onChange={(e) => {
+                  setSceneCount(Number(e.target.value));
+                }}
+                className="w-full p-3 bg-slate-800 border border-slate-600 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition mt-2"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200">
+              {error}
+            </div>
+          )}
+
           <h3 className="text-lg font-bold text-slate-300 pt-2">
             공통 이미지 프롬프트 (선택)
           </h3>
@@ -396,16 +531,26 @@ export default function ShortsGeneratorPage() {
             value={commonImagePrompt}
             onChange={(e) => setCommonImagePrompt(e.target.value)}
             className="w-full p-3 bg-slate-800 border border-slate-600 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition"
+            rows={5}
           />
         </div>
 
         <div className="flex justify-center mt-6">
           <button
             type="submit"
-            disabled={loading || !topic.trim()}
+            disabled={
+              loading ||
+              (generationMode === "general"
+                ? !topic.trim()
+                : !articleUrl.trim())
+            }
             className="px-8 py-3 bg-teal-500 text-white font-bold rounded-lg hover:bg-teal-600 disabled:bg-slate-500 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? "생성 중..." : "스크립트 생성"}
+            {loading
+              ? "생성 중..."
+              : `${
+                  generationMode === "general" ? "일반" : "뉴스"
+                } 스크립트 생성`}
           </button>
         </div>
       </form>
