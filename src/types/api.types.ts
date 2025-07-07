@@ -16,6 +16,11 @@ export interface ComponentResponse {
   generatedFiles?: string[];
 }
 
+export interface Comment {
+  author: string;
+  text: string;
+}
+
 export interface CrawlResponse {
   url: string;
   title: string;
@@ -23,6 +28,7 @@ export interface CrawlResponse {
   publisher?: string;
   author?: string;
   date?: string;
+  comments?: Comment[];
 }
 
 export interface ImageTextOptions {

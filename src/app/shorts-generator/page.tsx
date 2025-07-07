@@ -74,6 +74,47 @@ const SYSTEM_INSTRUCTION_FOR_NEWS = `당신은 뉴스 기사를 유튜브 쇼츠
 \`\`\`
 `;
 
+const SYSTEM_INSTRUCTION_FOR_COMMUNITY = `당신은 커뮤니티 게시글의 작성자가 되어, 자신의 글을 바탕으로 유튜브 쇼츠를 만드는 시나리오의 스크립트 작가입니다.
+주어진 '커뮤니티 게시글'과 '주요 댓글' 내용을 바탕으로, 원본 글의 톤과 분위기를 완벽하게 유지하며, 시청자의 흥미를 끌 수 있는 {{scene_count}}개의 장면으로 구성된 스크립트를 작성해야 합니다.
+
+# 구성 가이드
+1.  **도입부 (첫 장면 고정)**: 첫 번째 장면은 반드시 '요즘 커뮤니티에 화제인 글'이라는 자막을 가진 타이틀 카드 형식으로 생성해주세요. 이 장면의 나레이션은 비워두고(\`"narration": ""\`), 이미지 프롬프트는 시선을 끄는 추상적이거나 상징적인 이미지로 만들어주세요.
+2.  **본문 소개 (2번째 장면부터)**: '커뮤니티 게시글'의 내용을 중심으로, 작성자가 자신의 이야기를 소개하는 것처럼 스크립트를 작성해주세요.
+3.  **댓글 반응 (이후 장면들)**: 주요 댓글을 하나씩 보여주세요.
+4.  **마무리 (마지막 장면)**: 시청자들의 좋아요와 댓글을 유도하도록 해주세요.
+
+각 장면은 다음 6가지 요소를 반드시 포함해야 합니다:
+
+1.  **자막 (subtitle)**: 원본 게시글의 핵심 내용이나 재미있는 댓글을 재치있게 표현하는 짧고 간결한 텍스트 (1~2문장)
+2.  **이미지 프롬프트 (image_prompt)**: 장면에 어울리는 이미지를 생성하기 위한 상세한 영어로 작성된 프롬프트 (Gemini, Dall-E 또는 Midjourney와 같은 이미지 생성 AI가 이해할 수 있는 형식)
+3.  **나레이션 (narration)**: 게시글 작성자가 직접 말하는 듯한, 원본 글의 말투와 감정이 살아있는 대본 (1~3문장). (단, 도입부 장면은 예외적으로 나레이션을 비워주세요.)
+4.  **장면 (scene)**: 장면은 {{scene_count}}개로 구성해줘
+5.  **쇼츠 제목 (shorts_title)**: 게시글 내용을 바탕으로, 사람들의 호기심을 자극하고 클릭을 유도할 만한 '후킹'이 강력한 유튜브 쇼츠 제목을 1개 작성해줘. 원본 글의 느낌을 살려주세요.
+6.  **쇼츠 설명 (shorts_description)**: 생성된 스크립트 내용을 바탕으로, 원본 게시글의 요약과 함께 사람들의 흥미를 유발할 만한 쇼츠 설명글을 1~2문장으로 작성해줘. (적절한 이모티콘과 줄바꿈 포함)
+
+결과는 반드시 다음 JSON 형식으로 반환해야 합니다. 추가적인 설명 없이 JSON 객체만 반환해주세요.
+
+# 결과 반환시 주의사항
+- 반드시 json 형식에 맞도록 반환해줘
+- 첫 번째 장면은 사람들의 시선을 사로잡을 가장 핵심적이고 흥미로운 내용으로 구성해줘.
+
+\`\`\`json
+{
+  "scenes": [
+    {
+      "scene": 1,
+      "subtitle": "...",
+      "image_prompt": "...",
+      "narration": "..."
+    }
+    // ... 여기에 {{scene_count}}개의 장면을 생성해주세요.
+  ],
+  "shorts_title": "...",
+  "shorts_description": "..."
+}
+\`\`\`
+`;
+
 const RECOMMENDATION_SYSTEM_INSTRUCTION = `당신은 유튜브 쇼츠 콘텐츠 기획 전문가입니다.
 사용자가 입력한 키워드나 문장을 바탕으로, 시청자들의 호기심을 자극하고 클릭을 유도할 수 있는 '후킹'이 강력한 유튜브 쇼츠 영상 주제 5개를 추천해주세요.
 요즘 인스타그램, 유튜브에서 인기있는 주제로 선택해주세요.
@@ -103,12 +144,14 @@ export default function ShortsGeneratorPage() {
   const [jsonScriptInput, setJsonScriptInput] = useState("");
   const [jsonScriptError, setJsonScriptError] = useState<string | null>(null);
 
-  // 생성 모드 상태 (일반, 뉴스)
-  const [generationMode, setGenerationMode] = useState<"general" | "news">(
-    "general"
-  );
+  // 생성 모드 상태 (일반, 뉴스, 커뮤니티)
+  const [generationMode, setGenerationMode] = useState<
+    "general" | "news" | "community"
+  >("general");
   // 뉴스 기사 URL 상태
   const [articleUrl, setArticleUrl] = useState("");
+  const [communityPostContent, setCommunityPostContent] = useState("");
+  const [communityComments, setCommunityComments] = useState("");
   const [sceneCount, setSceneCount] = useState(5);
 
   const DEFAULT_COMMON_PROMPTS = [
@@ -276,6 +319,11 @@ export default function ShortsGeneratorPage() {
         setError("기사 URL을 입력해주세요.");
         return;
       }
+    } else if (generationMode === "community") {
+      if (!communityPostContent.trim() || !communityComments.trim()) {
+        setError("커뮤니티 본문과 댓글을 모두 입력해주세요.");
+        return;
+      }
     }
 
     setLoading(true);
@@ -286,7 +334,9 @@ export default function ShortsGeneratorPage() {
       const systemInstruction = (
         generationMode === "general"
           ? SYSTEM_INSTRUCTION
-          : SYSTEM_INSTRUCTION_FOR_NEWS
+          : generationMode === "news"
+          ? SYSTEM_INSTRUCTION_FOR_NEWS
+          : SYSTEM_INSTRUCTION_FOR_COMMUNITY
       ).replace(/\{\{scene_count\}\}/g, String(sceneCount));
 
       let prompt = "";
@@ -299,7 +349,7 @@ export default function ShortsGeneratorPage() {
           3. ${commonImagePrompt}`
             : ""
         }`;
-      } else {
+      } else if (generationMode === "news") {
         // 뉴스 모드
         const res = await fetch(
           `${API_ROUTES.CRAWLER}?url=${encodeURIComponent(
@@ -320,6 +370,24 @@ export default function ShortsGeneratorPage() {
 - 작성자: ${articleData.author}
 - 날짜: ${articleData.date}
         
+${
+  commonImagePrompt
+    ? `\n\n# 공통 이미지 프롬프트
+          1. 이미지에 텍스트는 포함시키지말아줘. 해당 규칙은 개별 프롬프트에 모두 추가해줘.
+          2. 모든 이미지 프롬프트는 개별적으로 이미지 생성 ai에 쓰일거야. 따라서, 개별적으로 사용되더라도 통일성있는 이미지 생성을 위하여 최대 배경, 사물, 캐릭터, 인물 등 이미지 생성에 필요한 모든 요소를 상세하고, 구체적인 묘사해줘.
+          3. ${commonImagePrompt}`
+    : ""
+}`;
+      } else if (generationMode === "community") {
+        // 커뮤니티 모드
+        prompt = `${systemInstruction}
+
+# 커뮤니티 게시글
+${communityPostContent}
+
+# 주요 댓글
+${communityComments}
+
 ${
   commonImagePrompt
     ? `\n\n# 공통 이미지 프롬프트
@@ -455,6 +523,17 @@ ${
             >
               뉴스 쇼츠
             </button>
+            <button
+              type="button"
+              onClick={() => setGenerationMode("community")}
+              className={`px-6 py-2 rounded-lg border text-base font-semibold transition-all ${
+                generationMode === "community"
+                  ? "bg-teal-500 border-teal-400 text-white shadow-lg shadow-teal-500/20"
+                  : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+              }`}
+            >
+              커뮤니티 게시물
+            </button>
           </div>
 
           <div className="mt-6 space-y-4">
@@ -470,7 +549,7 @@ ${
                   rows={5}
                 />
               </div>
-            ) : (
+            ) : generationMode === "news" ? (
               <div>
                 <h2 className="text-xl font-bold text-slate-200">
                   뉴스 기사 URL 입력
@@ -482,6 +561,35 @@ ${
                   placeholder="예: https://www.bloter.net/news/articleView.html?idxno=..."
                   className="w-full p-3 bg-slate-800 border border-slate-600 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition mt-2"
                 />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-200">
+                    커뮤니티 본문 입력
+                  </h2>
+                  <textarea
+                    id="community-post-input"
+                    value={communityPostContent}
+                    onChange={(e) => setCommunityPostContent(e.target.value)}
+                    placeholder="커뮤니티 게시글 본문 내용을 여기에 붙여넣어주세요."
+                    className="w-full p-3 bg-slate-800 border border-slate-600 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition mt-2"
+                    rows={8}
+                  />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-200">
+                    주요 댓글 입력
+                  </h2>
+                  <textarea
+                    id="community-comments-input"
+                    value={communityComments}
+                    onChange={(e) => setCommunityComments(e.target.value)}
+                    placeholder="반응이 재미있는 주요 댓글들을 여기에 붙여넣어주세요."
+                    className="w-full p-3 bg-slate-800 border border-slate-600 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition mt-2"
+                    rows={5}
+                  />
+                </div>
               </div>
             )}
             <div>
@@ -543,14 +651,20 @@ ${
               loading ||
               (generationMode === "general"
                 ? !topic.trim()
-                : !articleUrl.trim())
+                : generationMode === "news"
+                ? !articleUrl.trim()
+                : !communityPostContent.trim() || !communityComments.trim())
             }
             className="px-8 py-3 bg-teal-500 text-white font-bold rounded-lg hover:bg-teal-600 disabled:bg-slate-500 disabled:cursor-not-allowed transition-colors"
           >
             {loading
               ? "생성 중..."
               : `${
-                  generationMode === "general" ? "일반" : "뉴스"
+                  generationMode === "general"
+                    ? "일반"
+                    : generationMode === "news"
+                    ? "뉴스"
+                    : "커뮤니티"
                 } 스크립트 생성`}
           </button>
         </div>
