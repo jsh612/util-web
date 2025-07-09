@@ -54,10 +54,10 @@ fi
 YOUTUBE_URL="$1"
 
 echo "다운로드를 시작합니다: $YOUTUBE_URL"
-echo "선택한 옵션: 재편집을 위한 최고화질 (mp4 비디오 + m4a 오디오)"
+echo "선택한 옵션: 호환성 높은 최고화질 (H.264 비디오 + m4a 오디오)"
 
-# 재편집을 위한 최적의 화질 옵션으로 yt-dlp를 실행합니다.
-yt-dlp -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best' -- "$YOUTUBE_URL"
+# 호환성이 높은 H.264 코덱을 우선으로 최적의 화질 옵션으로 yt-dlp를 실행합니다.
+yt-dlp -f 'bestvideo[vcodec^=avc1][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best' -- "$YOUTUBE_URL"
 
 echo ""
 echo "다운로드가 성공적으로 완료되었습니다." 
