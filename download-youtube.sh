@@ -44,41 +44,52 @@ fi
 
 # --- 스크립트 주요 로직 ---
 
-# 유튜브 URL과 분할 개수 인자 확인
+# 유튜브 URL, 분할 개수, 저장 경로 인자 확인
 if [ -z "$1" ]; then
   echo ""
-  echo "사용법: ./download-youtube.sh [유튜브 URL] [분할 개수(선택 사항)]"
+  echo "사용법: ./download-youtube.sh [유튜브 URL] [분할 개수(선택)] [저장 경로(선택)]"
   echo "예시 1: ./download-youtube.sh https://www.youtube.com/watch?v=dQw4w9WgXcQ"
   echo "예시 2: ./download-youtube.sh https://www.youtube.com/watch?v=dQw4w9WgXcQ 3"
+  echo "예시 3: ./download-youtube.sh https://www.youtube.com/watch?v=dQw4w9WgXcQ 3 ./downloads"
   exit 1
 fi
 
 YOUTUBE_URL="$1"
 # 분할 개수가 입력되지 않으면 기본값 1로 설정
 NUM_PARTS=${2:-1}
+# 저장 경로가 입력되지 않으면 기본 다운로드 경로로 설정
+SAVE_DIR=${3:-"/Users/admin_1/Desktop/쇼츠/youtube-source"}
+
+# 저장 경로가 존재하지 않으면 생성
+if [ ! -d "$SAVE_DIR" ]; then
+    echo "저장 경로 '$SAVE_DIR'가 존재하지 않아 새로 생성합니다."
+    mkdir -p "$SAVE_DIR"
+fi
 
 # yt-dlp가 사용할 다운로드 포맷
 # 호환성이 높은 H.264(avc1) 코덱을 우선으로 하되, 없을 경우 차선책 선택
 DOWNLOAD_FORMAT='bestvideo[vcodec^=avc1][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
 
-# 다운로드 전에 실제 저장될 파일명을 가져옵니다.
-# 특수문자 등이 포함된 제목도 안전하게 처리하기 위함입니다.
-FILENAME=$(yt-dlp --get-filename -o '%(title)s.%(ext)s' -f "$DOWNLOAD_FORMAT" -- "$YOUTUBE_URL")
+# yt-dlp로 다운로드될 순수 파일명을 가져옵니다.
+# 제목에 특수문자가 있어도 안전하게 처리합니다.
+FILENAME_ONLY=$(yt-dlp --get-filename -o '%(title)s.%(ext)s' -f "$DOWNLOAD_FORMAT" -- "$YOUTUBE_URL")
 if [ $? -ne 0 ]; then
     echo "[오류] 파일명을 가져오는 데 실패했습니다. URL을 확인해주세요."
     exit 1
 fi
 
-# 파일명에 /가 포함되어 있을 수 있으므로(채널명 등) basename 처리
-FILENAME=$(basename "$FILENAME")
+# 파일명에 포함될 수 있는 경로 정보(채널명 등)를 제거합니다.
+FILENAME_ONLY=$(basename "$FILENAME_ONLY")
+
+# 최종 저장 경로와 파일명을 조합합니다.
+FULL_PATH="$SAVE_DIR/$FILENAME_ONLY"
 
 echo "다운로드를 시작합니다: $YOUTUBE_URL"
 echo "선택한 옵션: 호환성 높은 최고화질 (H.264 비디오 + m4a 오디오)"
-echo "저장될 파일명: $FILENAME"
+echo "저장될 파일: $FULL_PATH"
 
-# yt-dlp를 실행하여 동영상을 다운로드합니다.
-# -o 옵션으로 파일명을 지정하여 다운로드합니다.
-yt-dlp -o "$FILENAME" -f "$DOWNLOAD_FORMAT" -- "$YOUTUBE_URL"
+# yt-dlp를 실행하여 지정된 경로에 동영상을 다운로드합니다.
+yt-dlp -o "$FULL_PATH" -f "$DOWNLOAD_FORMAT" -- "$YOUTUBE_URL"
 
 if [ $? -ne 0 ]; then
     echo "[오류] 다운로드에 실패했습니다."
@@ -94,7 +105,7 @@ if [ "$NUM_PARTS" -gt 1 ]; then
     echo "이제 동영상을 ${NUM_PARTS}개의 파일로 분할합니다..."
 
     # ffprobe로 동영상 총 길이(초)를 가져옵니다.
-    DURATION=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$FILENAME")
+    DURATION=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$FULL_PATH")
     if [ -z "$DURATION" ]; then
         echo "[오류] 동영상의 길이를 가져올 수 없습니다. 파일이 손상되었을 수 있습니다."
         exit 1
@@ -113,8 +124,8 @@ if [ "$NUM_PARTS" -gt 1 ]; then
     fi
 
     # 파일 이름과 확장자를 분리합니다.
-    BASENAME="${FILENAME%.*}"
-    EXTENSION="${FILENAME##*.}"
+    BASENAME="${FULL_PATH%.*}"
+    EXTENSION="${FILENAME_ONLY##*.}"
 
     # 반복문을 통해 파일을 분할합니다.
     for i in $(seq 1 $NUM_PARTS)
@@ -127,14 +138,14 @@ if [ "$NUM_PARTS" -gt 1 ]; then
         # ffmpeg 실행 (에러 출력을 숨겨 깔끔하게 표시)
         if [ "$i" -lt "$NUM_PARTS" ]; then
             # 마지막 파트가 아니면 계산된 길이만큼 자릅니다.
-            ffmpeg -y -i "$FILENAME" -ss "$START_TIME" -t "$PART_DURATION" -c copy "$OUTPUT_FILENAME" >/dev/null 2>&1
+            ffmpeg -y -i "$FULL_PATH" -ss "$START_TIME" -t "$PART_DURATION" -c copy "$OUTPUT_FILENAME" >/dev/null 2>&1
         else
             # 마지막 파트이면 시작 시간부터 영상 끝까지 자릅니다.
-            ffmpeg -y -i "$FILENAME" -ss "$START_TIME" -c copy "$OUTPUT_FILENAME" >/dev/null 2>&1
+            ffmpeg -y -i "$FULL_PATH" -ss "$START_TIME" -c copy "$OUTPUT_FILENAME" >/dev/null 2>&1
         fi
     done
 
     echo ""
     echo "동영상 분할이 완료되었습니다."
-    echo "원본 파일 '$FILENAME'은 삭제되지 않았습니다."
+    echo "원본 파일 '$FULL_PATH'은 삭제되지 않았습니다."
 fi 
