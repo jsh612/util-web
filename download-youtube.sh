@@ -66,14 +66,20 @@ if [ ! -d "$SAVE_DIR" ]; then
     mkdir -p "$SAVE_DIR"
 fi
 
-# yt-dlp가 사용할 다운로드 포맷
+# yt-dlp가 사용할 다운로드 포맷 (우선순위 순서)
 # 호환성이 높은 H.264(avc1) 코덱을 우선으로 하되, 없을 경우 차선책 선택
-DOWNLOAD_FORMAT='bestvideo[vcodec^=avc1][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+# YouTube의 SABR 스트리밍 강제로 인해 일부 포맷이 사용 불가능할 수 있으므로
+# 여러 대체 옵션을 순차적으로 시도합니다.
+DOWNLOAD_FORMAT_OPTIONS=(
+    'bestvideo[vcodec^=avc1][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+    'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+    'bestvideo+bestaudio/best'
+    'best'
+)
 
-# yt-dlp로 다운로드될 순수 파일명을 가져옵니다.
-# 제목에 특수문자가 있어도 안전하게 처리합니다.
-FILENAME_ONLY=$(yt-dlp --get-filename -o '%(title)s.%(ext)s' -f "$DOWNLOAD_FORMAT" -- "$YOUTUBE_URL")
-if [ $? -ne 0 ]; then
+# 파일명을 먼저 가져옵니다 (첫 번째 포맷 옵션 사용)
+FILENAME_ONLY=$(yt-dlp --get-filename -o '%(title)s.%(ext)s' -- "$YOUTUBE_URL" 2>/dev/null)
+if [ $? -ne 0 ] || [ -z "$FILENAME_ONLY" ]; then
     echo "[오류] 파일명을 가져오는 데 실패했습니다. URL을 확인해주세요."
     exit 1
 fi
@@ -85,19 +91,55 @@ FILENAME_ONLY=$(basename "$FILENAME_ONLY")
 FULL_PATH="$SAVE_DIR/$FILENAME_ONLY"
 
 echo "다운로드를 시작합니다: $YOUTUBE_URL"
-echo "선택한 옵션: 호환성 높은 최고화질 (H.264 비디오 + m4a 오디오)"
 echo "저장될 파일: $FULL_PATH"
+echo ""
 
-# yt-dlp를 실행하여 지정된 경로에 동영상을 다운로드합니다.
-yt-dlp -o "$FULL_PATH" -f "$DOWNLOAD_FORMAT" -- "$YOUTUBE_URL"
+# 여러 포맷 옵션을 순차적으로 시도합니다.
+DOWNLOAD_SUCCESS=false
+for FORMAT_OPTION in "${DOWNLOAD_FORMAT_OPTIONS[@]}"; do
+    echo "포맷 시도 중: $FORMAT_OPTION"
+    
+    # yt-dlp를 실행하여 지정된 경로에 동영상을 다운로드합니다.
+    # 에러 메시지는 stderr로 리다이렉트하여 출력을 깔끔하게 유지합니다.
+    if yt-dlp -o "$FULL_PATH" -f "$FORMAT_OPTION" -- "$YOUTUBE_URL" >/dev/null 2>&1; then
+        # 다운로드가 성공했는지 파일 존재 여부로 확인
+        if [ -f "$FULL_PATH" ]; then
+            DOWNLOAD_SUCCESS=true
+            echo ""
+            echo "✓ 다운로드 성공!"
+            break
+        fi
+    fi
+    
+    echo "  → 이 포맷으로는 다운로드할 수 없습니다. 다음 옵션을 시도합니다..."
+    echo ""
+done
 
-if [ $? -ne 0 ]; then
-    echo "[오류] 다운로드에 실패했습니다."
+if [ "$DOWNLOAD_SUCCESS" = false ]; then
+    echo "[오류] 모든 포맷 옵션으로 다운로드에 실패했습니다."
+    echo "동영상이 비공개이거나 제한되어 있을 수 있습니다."
+    echo "yt-dlp를 최신 버전으로 업데이트해보세요: yt-dlp -U"
     exit 1
 fi
 
 echo ""
-echo "다운로드가 성공적으로 완료되었습니다."
+echo "=========================================="
+echo "✓ 다운로드가 성공적으로 완료되었습니다!"
+echo "=========================================="
+echo ""
+echo "📁 저장 위치:"
+echo "   $FULL_PATH"
+echo ""
+
+# 파일 크기 확인 및 표시
+if [ -f "$FULL_PATH" ]; then
+    FILE_SIZE=$(ls -lh "$FULL_PATH" | awk '{print $5}')
+    echo "📊 파일 크기: $FILE_SIZE"
+    echo ""
+    echo "💡 Finder에서 열기:"
+    echo "   open \"$SAVE_DIR\""
+    echo ""
+fi
 
 # 분할 개수가 1보다 큰 경우에만 분할 로직 실행
 if [ "$NUM_PARTS" -gt 1 ]; then
@@ -146,6 +188,21 @@ if [ "$NUM_PARTS" -gt 1 ]; then
     done
 
     echo ""
-    echo "동영상 분할이 완료되었습니다."
-    echo "원본 파일 '$FULL_PATH'은 삭제되지 않았습니다."
+    echo "=========================================="
+    echo "✓ 동영상 분할이 완료되었습니다!"
+    echo "=========================================="
+    echo ""
+    echo "📁 저장된 파일들:"
+    echo "   원본: $FULL_PATH"
+    for i in $(seq 1 $NUM_PARTS); do
+        PART_FILE="${BASENAME}_part${i}.${EXTENSION}"
+        if [ -f "$PART_FILE" ]; then
+            PART_SIZE=$(ls -lh "$PART_FILE" | awk '{print $5}')
+            echo "   파트 ${i}: $PART_FILE ($PART_SIZE)"
+        fi
+    done
+    echo ""
+    echo "💡 Finder에서 열기:"
+    echo "   open \"$SAVE_DIR\""
+    echo ""
 fi 
