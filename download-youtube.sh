@@ -100,8 +100,10 @@ for FORMAT_OPTION in "${DOWNLOAD_FORMAT_OPTIONS[@]}"; do
     echo "포맷 시도 중: $FORMAT_OPTION"
     
     # yt-dlp를 실행하여 지정된 경로에 동영상을 다운로드합니다.
-    # 에러 메시지는 stderr로 리다이렉트하여 출력을 깔끔하게 유지합니다.
-    if yt-dlp -o "$FULL_PATH" -f "$FORMAT_OPTION" -- "$YOUTUBE_URL" >/dev/null 2>&1; then
+    # stdout은 숨기되, 에러 발생 시 원인을 알 수 있도록 stderr는 출력합니다.
+    # --no-write-subs: 비디오에 포함되지 않은 자막 다운로드 방지
+    # --no-write-auto-subs: 자동 생성된 자막 다운로드 방지
+    if yt-dlp -o "$FULL_PATH" -f "$FORMAT_OPTION" --no-write-subs --no-write-auto-subs -- "$YOUTUBE_URL" >/dev/null; then
         # 다운로드가 성공했는지 파일 존재 여부로 확인
         if [ -f "$FULL_PATH" ]; then
             DOWNLOAD_SUCCESS=true
