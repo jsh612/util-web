@@ -47,10 +47,11 @@ fi
 # 유튜브 URL, 분할 개수, 저장 경로 인자 확인
 if [ -z "$1" ]; then
   echo ""
-  echo "사용법: ./download-youtube.sh [유튜브 URL] [분할 개수(선택)] [저장 경로(선택)]"
-  echo "예시 1: ./download-youtube.sh https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-  echo "예시 2: ./download-youtube.sh https://www.youtube.com/watch?v=dQw4w9WgXcQ 3"
-  echo "예시 3: ./download-youtube.sh https://www.youtube.com/watch?v=dQw4w9WgXcQ 3 ./downloads"
+  echo "사용법: ./scripts/download-youtube.sh [유튜브 URL] [분할 개수(선택)] [저장 경로(선택)]"
+  echo "        (저장 경로 생략 시 기본값: 프로젝트 루트의 temp-videos 폴더)"
+  echo "예시 1: ./scripts/download-youtube.sh https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  echo "예시 2: ./scripts/download-youtube.sh https://www.youtube.com/watch?v=dQw4w9WgXcQ 3"
+  echo "예시 3: ./scripts/download-youtube.sh https://www.youtube.com/watch?v=dQw4w9WgXcQ 3 ./temp-videos"
   exit 1
 fi
 
@@ -58,7 +59,13 @@ YOUTUBE_URL="$1"
 # 분할 개수가 입력되지 않으면 기본값 1로 설정
 NUM_PARTS=${2:-1}
 # 저장 경로가 입력되지 않으면 기본 다운로드 경로로 설정
-SAVE_DIR=${3:-"/Users/admin_1/Desktop/쇼츠/youtube-source"}
+# 스크립트 파일의 위치를 기준으로 프로젝트 루트 경로 탐색
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+# 기본 저장 경로를 프로젝트 루트의 temp-videos로 설정
+DEFAULT_SAVE_DIR="$PROJECT_ROOT/temp-videos"
+
+SAVE_DIR=${3:-"$DEFAULT_SAVE_DIR"}
 
 # 저장 경로가 존재하지 않으면 생성
 if [ ! -d "$SAVE_DIR" ]; then
