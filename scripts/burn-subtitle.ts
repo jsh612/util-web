@@ -113,6 +113,9 @@ const processSrtFile = (inputSrtPath: string, outputSrtPath: string) => {
       color = getColorForSpeaker(speaker);
     }
 
+    // \n 문자열을 실제 줄바꿈 문자로 변환
+    text = text.replace(/\\n/g, "\n");
+
     // FFmpeg 자막 필터가 인식하는 HTML font 태그 적용
     return `<font color="${color}">${text}</font>`;
   });
