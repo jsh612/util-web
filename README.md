@@ -227,17 +227,23 @@ src/
 │   │       ├── pdf/        # PDF API
 │   │       └── gemini/     # Gemini 챗봇 API
 │   ├── components/         # 컴포넌트
-│   │   ├── layout/        # 레이아웃 컴포넌트
-│   │   └── ui/            # UI 컴포넌트
-│   ├── utils/             # 유틸리티 함수
-│   │   ├── gemini.ts      # Gemini API 관련 유틸
-│   │   └── pdf.ts         # PDF 처리 유틸
-│   ├── crawler/           # 뉴스 크롤러 페이지
-│   ├── figma/             # Figma 관련 페이지
-│   ├── instagram-post/    # 인스타그램 포스트 생성 페이지
-│   └── gemini-chat/       # PDF Q&A 챗봇 페이지
-├── constants/            # 상수 정의
-└── types/               # TypeScript 타입 정의
+│   │   ├── layout/         # 레이아웃 컴포넌트
+│   │   └── ui/             # UI 컴포넌트
+│   ├── utils/              # 유틸리티 함수
+│   │   ├── gemini.ts       # Gemini API 관련 유틸
+│   │   └── pdf.ts          # PDF 처리 유틸
+│   ├── crawler/            # 뉴스 크롤러 페이지
+│   ├── figma/              # Figma 관련 페이지
+│   ├── instagram-post/     # 인스타그램 포스트 생성 페이지
+│   ├── gemini-chat/        # PDF Q&A 챗봇 페이지
+│   ├── photo-booth/        # 포토 부스 페이지
+│   └── retro-image/        # 레트로 이미지 페이지
+├── constants/              # 상수 정의
+├── types/                  # TypeScript 타입 정의
+└── scripts/                # 유틸리티 스크립트
+    ├── burn-subtitle.ts    # 자막 합성 스크립트
+    ├── download-youtube.sh # 유튜브 다운로드 스크립트
+    └── INSTALL_FFMPEG.md   # FFmpeg 설치 가이드
 ```
 
 ## 라이선스
