@@ -1,10 +1,24 @@
 /**
  * [사용 예시]
  * 1. 자막 파일(.srt)을 수동으로 준비합니다. (화자 정보 포함: [화자명] 내용)
- * 2. 아래 명령어로 실행합니다:
+ * 2. SRT 파일 텍스트 내에서 줄바꿈이 필요한 곳에 '\n' 문자를 직접 입력합니다. (예: 안녕\n하세요)
+ * 3. 아래 명령어로 실행합니다:
  *    npx tsx scripts/burn-subtitle.ts <비디오경로> <자막경로> [출력파일명]
  *
  * 예: npx tsx scripts/burn-subtitle.ts temp-videos/input.mp4 temp-videos/test.srt temp-videos/output.mp4
+ */
+
+/**
+ * [자막 파일(.srt) 작성 예시]
+ * ----------------------------------------
+ * 1
+ * 00:00:00,500 --> 00:00:02,800
+ * [진행자] 자! 판\n이 깔렸다!
+ *
+ * 2
+ * 00:00:03,800 --> 00:00:06,500
+ * [진행자] 조선 팔도 최고의 국물은 누구냐!
+ * ----------------------------------------
  */
 
 import { exec } from "child_process";
@@ -113,6 +127,9 @@ const processSrtFile = (inputSrtPath: string, outputSrtPath: string) => {
       color = getColorForSpeaker(speaker);
     }
 
+    // \n 문자열을 실제 줄바꿈 문자로 변환
+    text = text.replace(/\\n/g, "\n");
+
     // FFmpeg 자막 필터가 인식하는 HTML font 태그 적용
     return `<font color="${color}">${text}</font>`;
   });
@@ -130,53 +147,76 @@ const burnSubtitles = async (
   const absVideoPath = path.resolve(videoPath);
   const absOutputPath = path.resolve(outputPath);
 
+  // 출력 폴더가 없으면 생성
+  const outputDir = path.dirname(absOutputPath);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+    console.log(`📂 출력 폴더 생성됨: ${outputDir}`);
+  }
+
   // 임시 처리된 자막 파일 생성
   const dir = path.dirname(srtPath);
   const name = path.basename(srtPath, ".srt");
   const processedSrtPath = path.join(dir, `${name}_processed.srt`);
-
-  // 1. 자막 전처리 (화자별 색상 적용 및 태그 제거)
-  processSrtFile(srtPath, processedSrtPath);
   const absSrtPath = path.resolve(processedSrtPath);
 
-  console.log(`🎬 자막 합성 시작...`);
-  console.log(`   - 비디오: ${path.basename(videoPath)}`);
-  console.log(`   - 원본 자막: ${path.basename(srtPath)}`);
-  console.log(`   - 처리된 자막: ${path.basename(processedSrtPath)}`);
-  console.log(`   - 폰트: ${FONT_NAME}, 크기: ${FONT_SIZE}, 여백: ${MARGIN_V}`);
-
-  // FFmpeg 명령어 구성
-  const safeSrtPath = absSrtPath.replace(/\\/g, "/").replace(/:/g, "\\:");
-
-  // 전체 필터 문자열 구성
-  const filterString = `subtitles='${safeSrtPath}':original_size=${REF_WIDTH}x${REF_HEIGHT}:force_style='${FORCE_STYLE}'`;
-
-  // 최종 명령어 조합
-  const command = `ffmpeg -i "${absVideoPath}" -y -acodec copy -vcodec libx264 -filter:v "${filterString}" "${absOutputPath}"`;
-
-  console.log("\n🚀 실행 명령어:");
-  console.log(command);
-  console.log("\n⏳ 처리 중... (시간이 걸릴 수 있습니다)");
-
   try {
+    // 1. 자막 전처리 (화자별 색상 적용 및 태그 제거)
+    processSrtFile(srtPath, processedSrtPath);
+
+    console.log(`🎬 자막 합성 시작...`);
+    console.log(`   - 비디오: ${path.basename(videoPath)}`);
+    console.log(`   - 원본 자막: ${path.basename(srtPath)}`);
+    console.log(`   - 처리된 자막: ${path.basename(processedSrtPath)}`);
+    console.log(
+      `   - 폰트: ${FONT_NAME}, 크기: ${FONT_SIZE}, 여백: ${MARGIN_V}`
+    );
+
+    // FFmpeg 명령어 구성
+    const safeSrtPath = absSrtPath.replace(/\\/g, "/").replace(/:/g, "\\:");
+
+    // 전체 필터 문자열 구성
+    const filterString = `subtitles='${safeSrtPath}':original_size=${REF_WIDTH}x${REF_HEIGHT}:force_style='${FORCE_STYLE}'`;
+
+    // 최종 명령어 조합
+    const command = `ffmpeg -i "${absVideoPath}" -y -acodec copy -vcodec libx264 -filter:v "${filterString}" "${absOutputPath}"`;
+
+    console.log("\n🚀 실행 명령어:");
+    console.log(command);
+    console.log("\n⏳ 처리 중... (시간이 걸릴 수 있습니다)");
+
     const { stdout, stderr } = await execPromise(command);
 
     // FFmpeg 로그 출력 (디버깅용)
     if (stderr) {
-      console.log("\n[FFmpeg Log]");
-      const lines = stderr.split("\n");
-      console.log(lines.slice(-20).join("\n"));
+      // 에러는 아니지만 stderr로 로그가 나옴
+      // console.log("\n[FFmpeg Log]...");
     }
 
     console.log("\n✅ 자막 합성 완료!");
     console.log(`🎉 결과 파일: ${absOutputPath}`);
-
-    // (선택) 임시 파일 정리
-    // fs.unlinkSync(processedSrtPath);
   } catch (error: any) {
     console.error("\n❌ 오류 발생:");
     console.error(error.message);
+
+    // 실패 시 출력 파일이 어정쩡하게 생성되었다면 삭제 고려 (선택 사항)
+    if (fs.existsSync(absOutputPath)) {
+      try {
+        fs.unlinkSync(absOutputPath);
+      } catch (e) {}
+    }
+
     process.exit(1);
+  } finally {
+    // 3. 임시 파일 정리 (성공/실패 여부 상관없이 삭제)
+    if (fs.existsSync(processedSrtPath)) {
+      try {
+        fs.unlinkSync(processedSrtPath);
+        console.log(`🧹 임시 파일 삭제됨: ${path.basename(processedSrtPath)}`);
+      } catch (e) {
+        console.warn(`⚠️ 임시 파일 삭제 실패: ${processedSrtPath}`);
+      }
+    }
   }
 };
 
@@ -192,6 +232,24 @@ const main = async () => {
 
   const videoPath = args[0];
   const srtPath = args[1];
+
+  // 확장자 유효성 검사
+  if (!srtPath.toLowerCase().endsWith(".srt")) {
+    console.error(
+      "❌ 오류: 두 번째 인자는 반드시 .srt 자막 파일이어야 합니다."
+    );
+    process.exit(1);
+  }
+
+  // 비디오 파일 확장자 경고 (필수는 아님)
+  if (!videoPath.match(/\.(mp4|mov|avi|mkv|webm|m4v)$/i)) {
+    console.warn(
+      `⚠️ 경고: 비디오 파일 확장자가 일반적이지 않습니다 (${path.extname(
+        videoPath
+      )}).`
+    );
+  }
+
   const customOutputPath = args[2];
 
   if (!fs.existsSync(videoPath)) {

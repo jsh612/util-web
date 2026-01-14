@@ -42,6 +42,27 @@ Next.js 기반의 유틸리티 웹 애플리케이션입니다. Figma 디자인 
 
 - 템플릿 기반의 인스타그램 포스트 이미지 생성
 
+### YouTube Shorts 자동 자막 생성 (FFmpeg)
+
+로컬 비디오 파일과 자막 파일(.srt)을 결합하여 유튜브 쇼츠에 최적화된 스타일리시한 자막 영상을 생성합니다.
+
+#### 주요 특징
+
+- **화자별 자동 색상**: 자막의 `[화자명]`을 인식하여 화자별로 고유한 파스텔톤 색상을 자동으로 적용
+- **쇼츠 최적화 스타일**: 모바일 화면에 최적화된 폰트 크기, 위치, 가독성 좋은 테두리 스타일 적용
+- **줄바꿈 지원**: 자막 파일 내 `\n` 입력을 통해 원하는 위치에서 줄바꿈 가능
+
+#### 사용 방법
+
+1. **FFmpeg 설치**: 시스템에 FFmpeg가 설치되어 있어야 합니다. (설치 가이드: `scripts/INSTALL_FFMPEG.md`)
+2. **자막 준비**: `.srt` 형식으로 준비하며, `[화자명] 대사 내용` 형식으로 작성합니다.
+3. **명령어 실행**:
+
+   ```bash
+   npx tsx scripts/burn-subtitle.ts <비디오경로> <자막경로> [출력파일명]
+   # 예시: npx tsx scripts/burn-subtitle.ts video.mp4 subtitle.srt output.mp4
+   ```
+
 ### PDF 기반 Q&A 챗봇
 
 PDF 문서를 업로드하고 해당 문서의 내용을 기반으로 질문과 답변을 할 수 있는 챗봇 기능을 제공합니다.
@@ -206,17 +227,23 @@ src/
 │   │       ├── pdf/        # PDF API
 │   │       └── gemini/     # Gemini 챗봇 API
 │   ├── components/         # 컴포넌트
-│   │   ├── layout/        # 레이아웃 컴포넌트
-│   │   └── ui/            # UI 컴포넌트
-│   ├── utils/             # 유틸리티 함수
-│   │   ├── gemini.ts      # Gemini API 관련 유틸
-│   │   └── pdf.ts         # PDF 처리 유틸
-│   ├── crawler/           # 뉴스 크롤러 페이지
-│   ├── figma/             # Figma 관련 페이지
-│   ├── instagram-post/    # 인스타그램 포스트 생성 페이지
-│   └── gemini-chat/       # PDF Q&A 챗봇 페이지
-├── constants/            # 상수 정의
-└── types/               # TypeScript 타입 정의
+│   │   ├── layout/         # 레이아웃 컴포넌트
+│   │   └── ui/             # UI 컴포넌트
+│   ├── utils/              # 유틸리티 함수
+│   │   ├── gemini.ts       # Gemini API 관련 유틸
+│   │   └── pdf.ts          # PDF 처리 유틸
+│   ├── crawler/            # 뉴스 크롤러 페이지
+│   ├── figma/              # Figma 관련 페이지
+│   ├── instagram-post/     # 인스타그램 포스트 생성 페이지
+│   ├── gemini-chat/        # PDF Q&A 챗봇 페이지
+│   ├── photo-booth/        # 포토 부스 페이지
+│   └── retro-image/        # 레트로 이미지 페이지
+├── constants/              # 상수 정의
+├── types/                  # TypeScript 타입 정의
+└── scripts/                # 유틸리티 스크립트
+    ├── burn-subtitle.ts    # 자막 합성 스크립트
+    ├── download-youtube.sh # 유튜브 다운로드 스크립트
+    └── INSTALL_FFMPEG.md   # FFmpeg 설치 가이드
 ```
 
 ## 라이선스
