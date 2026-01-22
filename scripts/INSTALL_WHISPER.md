@@ -17,42 +17,52 @@
 python3 --version
 ```
 
-또는
-
-```bash
-python --version
-```
-
 Python이 설치되어 있지 않다면 [Python 공식 웹사이트](https://www.python.org/downloads/)에서 다운로드하여 설치하세요.
 
 ### 2. OpenAI Whisper 설치
 
-터미널에서 다음 명령어 중 하나를 실행합니다:
+#### macOS (권장 - pipx 사용)
 
-**macOS/Linux (권장):**
+최신 macOS에서는 시스템 Python 패키지 설치가 제한되어 있습니다. `pipx`를 사용하는 것을 권장합니다:
+
+```bash
+# pipx 설치 (Homebrew 필요)
+brew install pipx
+
+# Whisper 설치
+pipx install openai-whisper
+
+# PATH에 추가
+pipx ensurepath
+```
+
+설치 후 **새 터미널을 열거나** 다음 명령어를 실행하세요:
+```bash
+source ~/.zshrc   # 또는 source ~/.bashrc
+```
+
+#### Linux 또는 가상환경 사용 시
+
 ```bash
 python3 -m pip install openai-whisper
 ```
 
-**또는 pip3가 설치된 경우:**
-```bash
-pip3 install openai-whisper
-```
+#### "externally-managed-environment" 오류 발생 시
 
-**참고:** macOS에서는 `pip` 명령어가 직접 사용되지 않을 수 있습니다. `python3 -m pip`를 사용하는 것이 가장 안전합니다.
+macOS에서 pip 설치 시 이 오류가 발생하면 위의 pipx 방법을 사용하세요.
 
 ### 3. 설치 확인
 
 설치가 완료되었는지 확인합니다:
 
 ```bash
-whisper --version
+whisper --help
 ```
 
-또는
+pipx로 설치한 경우 PATH가 적용되기 전에는 다음 경로로 확인할 수 있습니다:
 
 ```bash
-whisper --help
+~/.local/bin/whisper --help
 ```
 
 ## 📝 사용 방법

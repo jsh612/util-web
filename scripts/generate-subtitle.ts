@@ -40,8 +40,12 @@ import { exec } from "child_process";
 import fs from "fs";
 import path from "path";
 import util from "util";
+import os from "os";
 
 const execPromise = util.promisify(exec);
+
+// pipx로 설치된 whisper 경로 우선 사용
+const WHISPER_PATH = path.join(os.homedir(), ".local/bin/whisper");
 
 /**
  * Whisper 모델 크기 옵션
@@ -81,10 +85,20 @@ const getDetailOptions = (detailLevel: DetailLevel): string => {
 /**
  * Whisper가 설치되어 있는지 확인
  */
+const getWhisperCommand = (): string => {
+  // pipx로 설치된 whisper가 있으면 우선 사용
+  if (fs.existsSync(WHISPER_PATH)) {
+    return WHISPER_PATH;
+  }
+  // 없으면 시스템 PATH의 whisper 사용
+  return "whisper";
+};
+
 const checkWhisperInstalled = async (): Promise<boolean> => {
   try {
+    const whisperCmd = getWhisperCommand();
     // whisper --version은 지원하지 않으므로 --help로 확인
-    await execPromise("whisper --help");
+    await execPromise(`"${whisperCmd}" --help`);
     return true;
   } catch {
     // whisper 명령어 자체가 없는 경우도 확인
@@ -153,7 +167,8 @@ const generateSubtitle = async (
     // --max_line_width: 한 줄의 최대 문자 수
     // --max_line_count: 한 자막 블록의 최대 줄 수
     // --max_words_per_line: 한 줄의 최대 단어 수
-    const command = `whisper "${absAudioPath}" --model ${model} --language ${language} --output_dir "${outputDir}" --output_format srt --verbose False ${detailOptions}`;
+    const whisperCmd = getWhisperCommand();
+    const command = `"${whisperCmd}" "${absAudioPath}" --model ${model} --language ${language} --output_dir "${outputDir}" --output_format srt --verbose False ${detailOptions}`;
 
     console.log(`\n🚀 실행 명령어:`);
     console.log(command);
