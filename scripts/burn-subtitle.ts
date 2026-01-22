@@ -185,7 +185,7 @@ const burnSubtitles = async (
     console.log(command);
     console.log("\n⏳ 처리 중... (시간이 걸릴 수 있습니다)");
 
-    const { stdout, stderr } = await execPromise(command);
+    const {  stderr } = await execPromise(command);
 
     // FFmpeg 로그 출력 (디버깅용)
     if (stderr) {
@@ -195,7 +195,7 @@ const burnSubtitles = async (
 
     console.log("\n✅ 자막 합성 완료!");
     console.log(`🎉 결과 파일: ${absOutputPath}`);
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     console.error("\n❌ 오류 발생:");
     console.error(error.message);
 
@@ -203,7 +203,9 @@ const burnSubtitles = async (
     if (fs.existsSync(absOutputPath)) {
       try {
         fs.unlinkSync(absOutputPath);
-      } catch (e) {}
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     process.exit(1);
@@ -213,7 +215,7 @@ const burnSubtitles = async (
       try {
         fs.unlinkSync(processedSrtPath);
         console.log(`🧹 임시 파일 삭제됨: ${path.basename(processedSrtPath)}`);
-      } catch (e) {
+      } catch (e) { // eslint-disable-line @typescript-eslint/no-unused-vars
         console.warn(`⚠️ 임시 파일 삭제 실패: ${processedSrtPath}`);
       }
     }
