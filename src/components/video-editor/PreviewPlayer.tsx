@@ -9,6 +9,7 @@ import {
   ASPECT_RATIO_CONFIG,
   TimelineClip,
 } from "@/types/video-editor.types";
+import { downloadFile } from "@/utils/file-download";
 
 interface ExportFunctions {
   exportStandard: () => Promise<void>;
@@ -667,20 +668,69 @@ export default function PreviewPlayer({
       const date = new Date();
       const fileName = `video-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}-${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}.mp4`;
 
-      // 다운로드
-      const url = URL.createObjectURL(mp4Blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      cleanup();
       const sizeInfo = `${(mp4Blob.size / (1024 * 1024)).toFixed(2)}MB`;
       const timeInfo = conversionTime ? `, 변환 ${conversionTime}초` : "";
-      alert(`MP4 비디오가 성공적으로 저장되었습니다! (${sizeInfo}${timeInfo})`);
+
+      // 완료 상태로 UI 업데이트
+      if (step1El) {
+        const circle1 = step1El.querySelector("div");
+        if (circle1) {
+          circle1.classList.remove("bg-teal-500");
+          circle1.classList.add("bg-green-500");
+          circle1.innerHTML = "✓";
+        }
+      }
+      if (step2El) {
+        step2El.classList.remove("text-slate-500");
+        step2El.classList.add("text-green-400");
+        const circle2 = step2El.querySelector("div");
+        if (circle2) {
+          circle2.classList.remove("bg-slate-600", "text-slate-400");
+          circle2.classList.add("bg-green-500", "text-white");
+          circle2.innerHTML = "✓";
+        }
+      }
+      if (statusEl) {
+        statusEl.textContent = `렌더링 완료! (${sizeInfo}${timeInfo})`;
+      }
+      if (progressText) {
+        progressText.textContent = "다운로드 버튼을 클릭하세요";
+      }
+      if (progressBar) {
+        progressBar.style.width = "100%";
+        progressBar.classList.remove("animate-pulse");
+        progressBar.classList.add("bg-green-500");
+      }
+
+      // 취소 버튼 제거하고 다운로드 버튼 추가
+      const existingCancelBtn = progressDiv?.querySelector("#export-cancel-btn");
+      if (existingCancelBtn) {
+        existingCancelBtn.remove();
+      }
+
+      // 다운로드 버튼 추가
+      const downloadBtn = document.createElement("button");
+      downloadBtn.id = "export-download-btn";
+      downloadBtn.className = "mt-4 px-6 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg text-sm font-medium transition-colors";
+      downloadBtn.textContent = "다운로드";
+      
+      downloadBtn.addEventListener("click", async () => {
+        try {
+          await downloadFile(mp4Blob, fileName, {
+            description: "MP4 Video",
+            accept: { "video/mp4": [".mp4"] },
+          });
+          console.log(`✅ 일반 내보내기 완료: ${sizeInfo}${timeInfo}`);
+          cleanup();
+        } catch (error) {
+          console.error("다운로드 오류:", error);
+        }
+      });
+
+      const buttonContainer = progressDiv?.querySelector(".bg-slate-800");
+      if (buttonContainer) {
+        buttonContainer.appendChild(downloadBtn);
+      }
     } catch (error) {
       console.error("비디오 내보내기 오류:", error);
       cleanup();
@@ -779,20 +829,39 @@ export default function PreviewPlayer({
       const date = new Date();
       const fileName = `video-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}-${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}.mp4`;
 
-      // 다운로드
-      const url = URL.createObjectURL(mp4Blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      document.body.removeChild(progressDiv);
       const sizeInfo = `${(mp4Blob.size / (1024 * 1024)).toFixed(2)}MB`;
       const timeInfo = renderTime ? ` (${renderTime}초)` : "";
-      alert(`MP4 비디오가 성공적으로 저장되었습니다! ${sizeInfo}${timeInfo}`);
+
+      // 완료 상태로 UI 업데이트
+      if (statusEl) {
+        statusEl.textContent = `렌더링 완료! (${sizeInfo}${timeInfo})`;
+      }
+
+      // 다운로드 버튼 추가
+      const downloadBtn = document.createElement("button");
+      downloadBtn.id = "ffmpeg-download-btn";
+      downloadBtn.className = "mt-4 px-6 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg text-sm font-medium transition-colors";
+      downloadBtn.textContent = "다운로드";
+      
+      downloadBtn.addEventListener("click", async () => {
+        try {
+          await downloadFile(mp4Blob, fileName, {
+            description: "MP4 Video",
+            accept: { "video/mp4": [".mp4"] },
+          });
+          console.log(`✅ 빠른 내보내기 완료: ${sizeInfo}${timeInfo}`);
+          if (document.body.contains(progressDiv)) {
+            document.body.removeChild(progressDiv);
+          }
+        } catch (error) {
+          console.error("다운로드 오류:", error);
+        }
+      });
+
+      const buttonContainer = progressDiv.querySelector(".bg-slate-800");
+      if (buttonContainer) {
+        buttonContainer.appendChild(downloadBtn);
+      }
     } catch (error) {
       console.error("FFmpeg 렌더링 오류:", error);
       if (document.body.contains(progressDiv)) {
