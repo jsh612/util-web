@@ -1,6 +1,6 @@
 "use server";
 
-import { getGeminiChatManager } from "@/app/utils/gemini";
+import { getGeminiChatManager } from "@/utils/gemini";
 import {
   ContentListUnion,
   GenerateContentResponseUsageMetadata,

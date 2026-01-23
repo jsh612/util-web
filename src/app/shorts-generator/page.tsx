@@ -1,6 +1,6 @@
 "use client";
 
-import { generateContentFromModel } from "@/app/utils/actions/gemini-actions";
+import { generateContentFromModel } from "@/utils/actions/gemini-actions";
 import { API_ROUTES } from "@/constants/routes";
 import { CrawlResponse } from "@/types/api.types";
 import { ShortsScript } from "@/types/shorts-generator.types";

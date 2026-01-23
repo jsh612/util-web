@@ -1,4 +1,4 @@
-import { CrawlerService } from "@/app/utils/crawler";
+import { CrawlerService } from "@/utils/crawler";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {

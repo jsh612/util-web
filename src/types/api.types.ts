@@ -22,7 +22,8 @@ export interface Comment {
 }
 
 export interface CrawlResponse {
-  url: string;
+  type: "naver" | "cnn" | "ap";
+  url?: string;
   title: string;
   content: string;
   publisher?: string;

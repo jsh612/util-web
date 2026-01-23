@@ -3,7 +3,7 @@
 import {
   generateChatResponse,
   initializeGeminiChat,
-} from "@/app/utils/actions/gemini-actions";
+} from "@/utils/actions/gemini-actions";
 
 import {
   CORPORATE_TAX_LAW,

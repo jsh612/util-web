@@ -16,7 +16,7 @@ export class CrawlerService {
         return this.crawlApNews($);
       } else {
         throw new Error(
-          "지원하지 않는 뉴스 사이트입니다. (현재 Naver News, CNN, AP News만 지원)"
+          "지원하지 않는 뉴스 사이트입니다. (현재 Naver News, CNN, AP News만 지원)",
         );
       }
     } catch (error) {
@@ -93,7 +93,7 @@ export class CrawlerService {
           !text.includes("___") &&
           !text.startsWith("By ") &&
           !text.includes("Updated") &&
-          !text.includes("Published")
+          !text.includes("Published"),
       );
 
     const content = paragraphs.join("\n\n");

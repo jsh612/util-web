@@ -1,6 +1,7 @@
 "use client";
 
 import { API_ROUTES } from "@/constants/routes";
+import { downloadFileFromUrl } from "@/utils/file-download";
 import axios from "axios";
 import { ChangeEvent, useRef, useState } from "react";
 
@@ -83,8 +84,7 @@ export default function SubtitleBurnPage() {
       console.error(error);
       if (axios.isAxiosError(error)) {
         setError(
-          error.response?.data?.error ||
-            "자막 합성 중 오류가 발생했습니다."
+          error.response?.data?.error || "자막 합성 중 오류가 발생했습니다.",
         );
       } else {
         setError("자막 합성 중 오류가 발생했습니다.");
@@ -94,17 +94,19 @@ export default function SubtitleBurnPage() {
     }
   };
 
-  const downloadVideo = () => {
+  const downloadVideo = async () => {
     if (!resultVideo) return;
 
-    const a = document.createElement("a");
-    a.href = resultVideo;
-    a.download = videoFile
+    const fileName = videoFile
       ? `${videoFile.name.substring(0, videoFile.name.lastIndexOf("."))}_subtitled.mp4`
       : "video_subtitled.mp4";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+
+    await downloadFileFromUrl(resultVideo, fileName, {
+      description: "MP4 Video",
+      accept: {
+        "video/mp4": [".mp4"],
+      },
+    });
   };
 
   return (
@@ -134,7 +136,8 @@ export default function SubtitleBurnPage() {
             />
             {videoFile && (
               <p className="mt-2 text-sm text-slate-400">
-                {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(2)} MB)
+                {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(2)}{" "}
+                MB)
               </p>
             )}
           </div>
@@ -178,7 +181,9 @@ export default function SubtitleBurnPage() {
           disabled={!videoFile || !srtFile || isLoading}
           className="w-full px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {isLoading ? "자막 합성 중... (시간이 걸릴 수 있습니다)" : "자막 합성하기"}
+          {isLoading
+            ? "자막 합성 중... (시간이 걸릴 수 있습니다)"
+            : "자막 합성하기"}
         </button>
 
         {/* 오류 메시지 */}

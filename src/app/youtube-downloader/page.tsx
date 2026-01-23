@@ -1,6 +1,7 @@
 "use client";
 
 import { API_ROUTES } from "@/constants/routes";
+import { downloadFileFromUrl } from "@/utils/file-download";
 import axios from "axios";
 import { useState } from "react";
 
@@ -31,19 +32,16 @@ export default function YouTubeDownloaderPage() {
 
   const downloadFile = async (filePath: string, fileName: string) => {
     try {
-      const response = await axios.get(API_ROUTES.FILES, {
-        params: { path: filePath },
-        responseType: "blob",
+      // 파일 다운로드 URL 생성
+      const downloadUrl = `${API_ROUTES.FILES}?path=${encodeURIComponent(filePath)}`;
+      
+      // File System Access API를 사용한 다운로드
+      await downloadFileFromUrl(downloadUrl, fileName, {
+        description: "MP4 Video",
+        accept: {
+          "video/mp4": [".mp4"],
+        },
       });
-
-      const url = URL.createObjectURL(response.data);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     } catch (error) {
       console.error("파일 다운로드 오류:", error);
       alert("파일 다운로드 중 오류가 발생했습니다.");

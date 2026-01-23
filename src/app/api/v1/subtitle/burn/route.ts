@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { exec } from "child_process";
 import fs from "fs";
-import path from "path";
+import { NextRequest, NextResponse } from "next/server";
 import os from "os";
+import path from "path";
 import util from "util";
 
 const execPromise = util.promisify(exec);
@@ -39,13 +39,7 @@ const FORCE_STYLE = STYLE_OPTIONS.join("\\,");
 /**
  * 화자별 색상 팔레트
  */
-const SPEAKER_PALETTE = [
-  "#FFE082",
-  "#80DEEA",
-  "#FFAB91",
-  "#CE93D8",
-  "#A5D6A7",
-];
+const SPEAKER_PALETTE = ["#FFE082", "#80DEEA", "#FFAB91", "#CE93D8", "#A5D6A7"];
 
 const speakerColorMap: Record<string, string> = {
   내레이션: "#FFFFFF",
@@ -104,14 +98,14 @@ export async function POST(request: NextRequest) {
     if (!videoFile) {
       return NextResponse.json(
         { error: "비디오 파일이 필요합니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!srtFile) {
       return NextResponse.json(
         { error: "자막 파일이 필요합니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -133,7 +127,7 @@ export async function POST(request: NextRequest) {
       // 처리된 자막 파일 경로
       const processedSrtPath = path.join(
         tempDir,
-        path.basename(srtFile.name, ".srt") + "_processed.srt"
+        path.basename(srtFile.name, ".srt") + "_processed.srt",
       );
 
       // 자막 전처리
@@ -167,7 +161,7 @@ export async function POST(request: NextRequest) {
       fs.rmSync(tempDir, { recursive: true, force: true });
 
       // 비디오 파일 반환
-      return new NextResponse(videoContent, {
+      return new NextResponse(new Uint8Array(videoContent), {
         headers: {
           "Content-Type": "video/mp4",
           "Content-Disposition": `attachment; filename="${outputName}"`,
@@ -183,7 +177,7 @@ export async function POST(request: NextRequest) {
         console.error("자막 합성 오류:", error.message);
         return NextResponse.json(
           { error: `자막 합성 실패: ${error.message}` },
-          { status: 500 }
+          { status: 500 },
         );
       }
       throw error;
@@ -197,7 +191,7 @@ export async function POST(request: NextRequest) {
             ? error.message
             : "알 수 없는 오류가 발생했습니다.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

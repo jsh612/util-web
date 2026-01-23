@@ -1,6 +1,7 @@
 "use client";
 
 import { API_ROUTES } from "@/constants/routes";
+import { downloadFile } from "@/utils/file-download";
 import axios from "axios";
 import { ChangeEvent, useRef, useState } from "react";
 
@@ -85,20 +86,21 @@ export default function SubtitleGeneratorPage() {
     }
   };
 
-  const downloadSrt = () => {
+  const downloadSrt = async () => {
     if (!srtContent) return;
 
-    const blob = new Blob([srtContent], { type: "text/plain; charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = audioFile
+    const fileName = audioFile
       ? `${audioFile.name.substring(0, audioFile.name.lastIndexOf("."))}.srt`
       : "subtitle.srt";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+
+    const blob = new Blob([srtContent], { type: "text/plain; charset=utf-8" });
+
+    await downloadFile(blob, fileName, {
+      description: "SRT Subtitle",
+      accept: {
+        "text/plain": [".srt"],
+      },
+    });
   };
 
   const copyToClipboard = () => {

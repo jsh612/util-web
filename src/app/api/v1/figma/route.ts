@@ -1,4 +1,4 @@
-import { ComponentService } from "@/app/utils/figma-to-component";
+import { ComponentService } from "@/utils/figma-to-component";
 import * as fs from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 

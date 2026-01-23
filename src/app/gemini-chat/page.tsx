@@ -4,7 +4,7 @@ import {
   generateChatResponse,
   initializeGeminiChat,
   setDocumentContext,
-} from "@/app/utils/actions/gemini-actions";
+} from "@/utils/actions/gemini-actions";
 
 import { API_ROUTES } from "@/constants/routes";
 import { GenerateContentResponseUsageMetadata } from "@google/genai";
