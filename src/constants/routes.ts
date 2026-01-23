@@ -10,6 +10,9 @@ export const API_ROUTES = {
   RETRO_IMAGE: "/api/v1/image/retro",
   PHOTO_BOOTH: "/api/v1/image/photo-booth",
   FILES: "/api/v1/files",
+  SUBTITLE_GENERATE: "/api/v1/subtitle/generate",
+  SUBTITLE_BURN: "/api/v1/subtitle/burn",
+  YOUTUBE_DOWNLOAD: "/api/v1/youtube/download",
 } as const;
 
 // Page Routes
@@ -24,6 +27,9 @@ export const PAGE_ROUTES = {
   RETRO_IMAGE: "/retro-image",
   PHOTO_BOOTH: "/photo-booth",
   SHORTS_GENERATOR: "/shorts-generator",
+  SUBTITLE_GENERATOR: "/subtitle-generator",
+  SUBTITLE_BURN: "/subtitle-burn",
+  YOUTUBE_DOWNLOADER: "/youtube-downloader",
 } as const;
 
 // API Base URL
