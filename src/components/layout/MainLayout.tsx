@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import SidebarToggle from "@/components/common/SidebarToggle";
 
 interface MenuItem {
   name: string;
@@ -268,21 +270,64 @@ const menuItems: MenuItem[] = [
     ),
     isVisible: true,
   },
+  {
+    name: "영상 편집기",
+    path: "/video-editor",
+    icon: (
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M7 4V2m0 2v2m0-2h10M7 4H3m14 0V2m0 2v2m0-2h4M3 10h18M3 10v10a2 2 0 002 2h14a2 2 0 002-2V10M3 10V8a2 2 0 012-2h2M21 10V8a2 2 0 00-2-2h-2"
+        />
+      </svg>
+    ),
+    isVisible: true,
+  },
 ];
 export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
       <div className="flex h-screen">
         {/* 사이드바 */}
-        <div className="w-64 bg-slate-800/50 backdrop-blur-sm border-r border-slate-700/50">
-          <div className="h-16 flex items-center px-6">
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">
+        <div
+          className={`${
+            isSidebarOpen ? "w-64" : "w-0"
+          } transition-all duration-300 ease-in-out bg-slate-800/50 backdrop-blur-sm border-r border-slate-700/50 overflow-hidden`}
+        >
+          <div className="h-16 flex items-center justify-between px-6 min-w-[256px]">
+            <h1
+              className={`text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500 transition-opacity duration-300 ${
+                isSidebarOpen ? "opacity-100" : "opacity-0"
+              }`}
+            >
               Util Web
             </h1>
+            <SidebarToggle
+              isOpen={isSidebarOpen}
+              onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+              direction="left"
+              position="inside"
+              label={{
+                open: "사이드바 열기",
+                close: "사이드바 닫기",
+              }}
+            />
           </div>
-          <nav className="mt-4 px-3">
+          <nav
+            className={`mt-4 px-3 transition-opacity duration-300 ${
+              isSidebarOpen ? "opacity-100" : "opacity-0"
+            }`}
+          >
             {menuItems.map(
               (item) =>
                 item.isVisible && (
@@ -302,6 +347,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
             )}
           </nav>
         </div>
+
+        {/* 사이드바 토글 버튼 (사이드바가 닫혔을 때) */}
+        {!isSidebarOpen && (
+          <SidebarToggle
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarOpen(true)}
+            direction="left"
+            position="outside"
+            label={{
+              open: "사이드바 열기",
+              close: "사이드바 닫기",
+            }}
+          />
+        )}
 
         {/* 메인 컨텐츠 */}
         <div className="flex-1 overflow-auto">

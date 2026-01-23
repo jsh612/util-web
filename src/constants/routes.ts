@@ -30,6 +30,7 @@ export const PAGE_ROUTES = {
   SUBTITLE_GENERATOR: "/subtitle-generator",
   SUBTITLE_BURN: "/subtitle-burn",
   YOUTUBE_DOWNLOADER: "/youtube-downloader",
+  VIDEO_EDITOR: "/video-editor",
 } as const;
 
 // API Base URL
