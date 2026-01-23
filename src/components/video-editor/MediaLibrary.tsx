@@ -45,8 +45,14 @@ async function loadVideo(file: File): Promise<HTMLVideoElement> {
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
     video.preload = "auto";
-    video.muted = true;
-    video.onloadedmetadata = () => resolve(video);
+    video.muted = true; // 비디오 오디오 트랙 음소거 (별도 오디오 트랙과 중복 재생 방지)
+    video.volume = 0; // 볼륨도 0으로 설정
+    video.onloadedmetadata = () => {
+      // 메타데이터 로드 후에도 muted 상태 유지
+      video.muted = true;
+      video.volume = 0;
+      resolve(video);
+    };
     video.onerror = reject;
     video.src = URL.createObjectURL(file);
   });
@@ -56,7 +62,17 @@ async function loadVideo(file: File): Promise<HTMLVideoElement> {
 async function loadAudio(file: File): Promise<HTMLAudioElement> {
   return new Promise((resolve, reject) => {
     const audio = new Audio();
-    audio.onloadedmetadata = () => resolve(audio);
+    // 오디오 품질 개선을 위한 설정
+    audio.preload = "auto"; // 전체 파일 미리 로드
+    audio.volume = 1.0; // 볼륨 설정
+    audio.playbackRate = 1.0; // 재생 속도
+    audio.crossOrigin = "anonymous"; // CORS 설정
+    
+    audio.onloadedmetadata = () => {
+      // 메타데이터 로드 후 추가 설정
+      audio.volume = 1.0;
+      resolve(audio);
+    };
     audio.onerror = reject;
     audio.src = URL.createObjectURL(file);
   });

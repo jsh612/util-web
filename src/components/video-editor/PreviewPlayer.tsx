@@ -29,7 +29,10 @@ export default function PreviewPlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // 오디오 상태 추적 (단순화)
+  const currentAudioClipIdRef = useRef<string | null>(null);
+  const currentAudioElementRef = useRef<HTMLAudioElement | null>(null);
 
   const aspectConfig = ASPECT_RATIO_CONFIG[aspectRatio];
 
@@ -90,7 +93,6 @@ export default function PreviewPlayer({
 
       if (!sourceWidth || !sourceHeight) return;
 
-      // 비율 유지하면서 캔버스에 맞추기 (cover 방식)
       const sourceRatio = sourceWidth / sourceHeight;
       const canvasRatio = canvasWidth / canvasHeight;
 
@@ -100,13 +102,11 @@ export default function PreviewPlayer({
       let offsetY: number;
 
       if (sourceRatio > canvasRatio) {
-        // 소스가 더 넓음 -> 높이 맞추고 좌우 자르기
         drawHeight = canvasHeight;
         drawWidth = canvasHeight * sourceRatio;
         offsetX = (canvasWidth - drawWidth) / 2;
         offsetY = 0;
       } else {
-        // 소스가 더 높음 -> 너비 맞추고 상하 자르기
         drawWidth = canvasWidth;
         drawHeight = canvasWidth / sourceRatio;
         offsetX = 0;
@@ -125,22 +125,15 @@ export default function PreviewPlayer({
       const ctx = canvas?.getContext("2d");
       if (!canvas || !ctx) return;
 
-      // 배경 클리어
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 현재 시간에 해당하는 비디오 클립 찾기
       const currentClip = getCurrentClip(currentTime, videoClips);
-
-      if (!currentClip) {
-        // 클립이 없으면 검은 화면
-        return;
-      }
+      if (!currentClip) return;
 
       const media = mediaItems.find((m) => m.id === currentClip.mediaId);
       if (!media) return;
 
-      // 클립 내부 시간 계산
       const clipTime = currentTime - currentClip.startTime + currentClip.trimStart;
 
       if (media.type === "image") {
@@ -148,8 +141,9 @@ export default function PreviewPlayer({
         drawMediaToCanvas(ctx, img, canvas.width, canvas.height);
       } else if (media.type === "video") {
         const video = media.element as HTMLVideoElement;
+        video.muted = true;
+        video.volume = 0;
 
-        // 비디오 시간 설정 (seeking)
         if (Math.abs(video.currentTime - clipTime) > 0.1) {
           video.currentTime = clipTime;
         }
@@ -160,119 +154,173 @@ export default function PreviewPlayer({
     [videoClips, mediaItems, getCurrentClip, drawMediaToCanvas]
   );
 
-  // 오디오 동기화
+  // 모든 오디오 정지 (단순화 - load() 제거)
+  const stopAllAudio = useCallback(() => {
+    mediaItems.forEach((media) => {
+      if (media.type === "audio") {
+        const audio = media.element as HTMLAudioElement;
+        if (!audio.paused) {
+          audio.pause();
+        }
+      } else if (media.type === "video") {
+        const video = media.element as HTMLVideoElement;
+        video.muted = true;
+        video.volume = 0;
+      }
+    });
+    currentAudioClipIdRef.current = null;
+    currentAudioElementRef.current = null;
+  }, [mediaItems]);
+
+  // 오디오 동기화 (단순화)
   const syncAudio = useCallback(
     (currentTime: number, isPlaying: boolean) => {
       const currentAudioClip = getCurrentClip(currentTime, audioClips);
 
+      // 오디오 클립이 없으면 현재 재생 중인 오디오 정지
       if (!currentAudioClip) {
-        // 현재 오디오 클립이 없으면 오디오 정지
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current = null;
+        if (currentAudioElementRef.current && !currentAudioElementRef.current.paused) {
+          currentAudioElementRef.current.pause();
         }
+        currentAudioClipIdRef.current = null;
+        currentAudioElementRef.current = null;
         return;
       }
 
       const media = mediaItems.find((m) => m.id === currentAudioClip.mediaId);
-      if (!media || media.type !== "audio") return;
-
-      const audioElement = media.element as HTMLAudioElement;
-      const clipTime =
-        currentTime - currentAudioClip.startTime + currentAudioClip.trimStart;
-
-      // 새로운 오디오 클립이면 교체
-      if (audioRef.current !== audioElement) {
-        if (audioRef.current) {
-          audioRef.current.pause();
+      if (!media || media.type !== "audio") {
+        if (currentAudioElementRef.current && !currentAudioElementRef.current.paused) {
+          currentAudioElementRef.current.pause();
         }
-        audioRef.current = audioElement;
+        currentAudioClipIdRef.current = null;
+        currentAudioElementRef.current = null;
+        return;
       }
 
-      // 시간 동기화
-      if (Math.abs(audioElement.currentTime - clipTime) > 0.1) {
+      const audioElement = media.element as HTMLAudioElement;
+      const clipTime = currentTime - currentAudioClip.startTime + currentAudioClip.trimStart;
+
+      // 오디오 클립이 변경되었는지 확인
+      const clipChanged = currentAudioClipIdRef.current !== currentAudioClip.id;
+
+      if (clipChanged) {
+        // 이전 오디오 정지 (현재 재생 중인 것만)
+        if (currentAudioElementRef.current && currentAudioElementRef.current !== audioElement) {
+          currentAudioElementRef.current.pause();
+        }
+        currentAudioClipIdRef.current = currentAudioClip.id;
+        currentAudioElementRef.current = audioElement;
+
+        // 새 오디오 시간 설정
         audioElement.currentTime = clipTime;
       }
 
-      // 재생 상태 동기화
-      if (isPlaying && audioElement.paused) {
-        audioElement.play().catch(() => {});
-      } else if (!isPlaying && !audioElement.paused) {
-        audioElement.pause();
+      // 볼륨 설정
+      audioElement.volume = playback.volume;
+
+      if (isPlaying) {
+        // 시간 동기화 (0.3초 이상 차이날 때만)
+        if (!clipChanged && Math.abs(audioElement.currentTime - clipTime) > 0.3) {
+          audioElement.currentTime = clipTime;
+        }
+
+        // 재생 시작 (정지 상태일 때만)
+        if (audioElement.paused) {
+          audioElement.play().catch(() => {
+            // 자동재생 정책으로 인한 에러 무시
+          });
+        }
+      } else {
+        // 정지
+        if (!audioElement.paused) {
+          audioElement.pause();
+        }
       }
     },
-    [audioClips, mediaItems, getCurrentClip]
+    [audioClips, mediaItems, getCurrentClip, playback.volume]
   );
 
-  // 애니메이션 루프
+  // 애니메이션 루프 - playback.isPlaying만 의존
   useEffect(() => {
     if (!playback.isPlaying) {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
       }
-      // 오디오 정지
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      // 현재 프레임만 렌더링
+      stopAllAudio();
       renderFrame(playback.currentTime);
       return;
     }
 
+    // 재생 시작 시 시간 초기화
     lastTimeRef.current = performance.now();
+    let localCurrentTime = playback.currentTime;
 
     const animate = (now: number) => {
       const delta = (now - lastTimeRef.current) / 1000;
       lastTimeRef.current = now;
 
-      const newTime = playback.currentTime + delta;
+      localCurrentTime += delta;
 
-      if (newTime >= totalDuration) {
-        // 재생 완료
+      if (localCurrentTime >= totalDuration) {
         onPlaybackUpdate({
           ...playback,
           isPlaying: false,
           currentTime: 0,
         });
+        stopAllAudio();
         return;
       }
 
+      // 상태 업데이트는 throttle (100ms마다)
       onPlaybackUpdate({
         ...playback,
-        currentTime: newTime,
+        currentTime: localCurrentTime,
       });
 
-      renderFrame(newTime);
-      syncAudio(newTime, true);
+      renderFrame(localCurrentTime);
+      syncAudio(localCurrentTime, true);
 
       animationRef.current = requestAnimationFrame(animate);
     };
 
+    // 오디오 시작
+    syncAudio(playback.currentTime, true);
     animationRef.current = requestAnimationFrame(animate);
 
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
       }
     };
-  }, [
-    playback.isPlaying,
-    playback.currentTime,
-    totalDuration,
-    onPlaybackUpdate,
-    renderFrame,
-    syncAudio,
-    playback,
-  ]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playback.isPlaying]); // playback.currentTime 제거!
 
-  // 재생 상태가 아닐 때 현재 프레임 렌더링
+  // 재생 위치 변경 시 (타임라인 클릭 등) - 정지 상태에서만
   useEffect(() => {
     if (!playback.isPlaying) {
       renderFrame(playback.currentTime);
-      syncAudio(playback.currentTime, false);
+      // 정지 상태에서는 오디오도 정지
+      if (currentAudioElementRef.current && !currentAudioElementRef.current.paused) {
+        currentAudioElementRef.current.pause();
+      }
     }
-  }, [playback.currentTime, playback.isPlaying, renderFrame, syncAudio]);
+  }, [playback.currentTime, playback.isPlaying, renderFrame]);
+
+  // 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      mediaItems.forEach((media) => {
+        if (media.type === "audio") {
+          (media.element as HTMLAudioElement).pause();
+        }
+      });
+    };
+  }, [mediaItems]);
 
   // 캔버스 크기 계산
   const canvasStyle = useMemo(() => {
@@ -300,7 +348,6 @@ export default function PreviewPlayer({
       ref={containerRef}
       className="flex flex-col items-center justify-center"
     >
-      {/* 미리보기 캔버스 */}
       <div className="relative bg-black rounded-lg overflow-hidden shadow-lg">
         <canvas
           ref={canvasRef}
@@ -313,7 +360,6 @@ export default function PreviewPlayer({
           className="block"
         />
 
-        {/* 클립 없음 표시 */}
         {videoClips.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
             <svg
@@ -334,7 +380,6 @@ export default function PreviewPlayer({
         )}
       </div>
 
-      {/* 비율 표시 */}
       <div className="mt-2 text-xs text-slate-400">
         {aspectConfig.label} ({aspectConfig.width} × {aspectConfig.height})
       </div>
