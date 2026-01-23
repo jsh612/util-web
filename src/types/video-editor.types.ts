@@ -68,6 +68,7 @@ export interface PlaybackState {
 // 선택 상태
 export interface SelectionState {
   selectedClipId: string | null;
+  selectedClipIds: Set<string>; // 다중 선택된 클립 ID들
   selectedTrackId: string | null;
 }
 

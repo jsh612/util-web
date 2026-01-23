@@ -40,6 +40,7 @@ const INITIAL_PLAYBACK: PlaybackState = {
 
 const INITIAL_SELECTION: SelectionState = {
   selectedClipId: null,
+  selectedClipIds: new Set(),
   selectedTrackId: null,
 };
 
@@ -80,18 +81,74 @@ export function useVideoEditor() {
   const handleRemoveMedia = useCallback(
     (mediaId: string) => {
       setMediaItems((prev) => prev.filter((item) => item.id !== mediaId));
-      // 타임라인에서 해당 미디어를 사용하는 클립도 삭제
-      setTimeline((prev) => ({
-        ...prev,
-        tracks: prev.tracks.map((track) => ({
+      // 타임라인에서 해당 미디어를 사용하는 클립도 삭제하고 총 지속시간 재계산
+      setTimeline((prev) => {
+        const updatedTracks = prev.tracks.map((track) => ({
           ...track,
           clips: track.clips.filter((clip) => clip.mediaId !== mediaId),
-        })),
-      }));
+        }));
+        
+        // 총 지속시간 재계산
+        let maxEnd = 0;
+        updatedTracks.forEach((track) => {
+          track.clips.forEach((clip) => {
+            const end = clip.startTime + clip.duration;
+            if (end > maxEnd) maxEnd = end;
+          });
+        });
+        
+        return {
+          ...prev,
+          tracks: updatedTracks,
+          totalDuration: maxEnd,
+        };
+      });
       // 선택된 미디어가 삭제되면 선택 해제
       setSelectedMediaIds((prev) => {
         const newSet = new Set(prev);
         newSet.delete(mediaId);
+        return newSet;
+      });
+    },
+    []
+  );
+
+  // 여러 미디어를 한 번에 제거하는 핸들러
+  const handleRemoveMultipleMedia = useCallback(
+    (mediaIds: string[]) => {
+      if (mediaIds.length === 0) return;
+      
+      const mediaIdsSet = new Set(mediaIds);
+      
+      setMediaItems((prev) => prev.filter((item) => !mediaIdsSet.has(item.id)));
+      
+      // 타임라인에서 해당 미디어들을 사용하는 클립도 삭제하고 총 지속시간 재계산
+      setTimeline((prev) => {
+        const updatedTracks = prev.tracks.map((track) => ({
+          ...track,
+          clips: track.clips.filter((clip) => !mediaIdsSet.has(clip.mediaId)),
+        }));
+        
+        // 총 지속시간 재계산
+        let maxEnd = 0;
+        updatedTracks.forEach((track) => {
+          track.clips.forEach((clip) => {
+            const end = clip.startTime + clip.duration;
+            if (end > maxEnd) maxEnd = end;
+          });
+        });
+        
+        return {
+          ...prev,
+          tracks: updatedTracks,
+          totalDuration: maxEnd,
+        };
+      });
+      
+      // 선택된 미디어가 삭제되면 선택 해제
+      setSelectedMediaIds((prev) => {
+        const newSet = new Set(prev);
+        mediaIds.forEach((id) => newSet.delete(id));
         return newSet;
       });
     },
@@ -235,6 +292,10 @@ export function useVideoEditor() {
       }),
       totalDuration: maxEndTime,
     }));
+
+    // 타임라인에 추가 완료 후 선택 초기화
+    setSelectedMediaIds(new Set());
+    setLastSelectedIndex(null);
   }, [selectedMediaIds, mediaItems, timeline.tracks, timeline.totalDuration]);
 
   // 타임라인 업데이트
@@ -287,6 +348,7 @@ export function useVideoEditor() {
     setIsRightSidebarOpen,
     handleAddMedia,
     handleRemoveMedia,
+    handleRemoveMultipleMedia,
     handleSelectMedia,
     handleSelectAll,
     handleAddToTimeline,

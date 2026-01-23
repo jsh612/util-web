@@ -25,6 +25,7 @@ export default function VideoEditorPage() {
     setIsRightSidebarOpen,
     handleAddMedia,
     handleRemoveMedia,
+    handleRemoveMultipleMedia,
     handleSelectMedia,
     handleSelectAll,
     handleAddToTimeline,
@@ -51,6 +52,7 @@ export default function VideoEditorPage() {
         onRightSidebarToggle={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
         onAddMedia={handleAddMedia}
         onRemoveMedia={handleRemoveMedia}
+        onRemoveMultipleMedia={handleRemoveMultipleMedia}
         onSelectMedia={handleSelectMedia}
         onSelectAll={handleSelectAll}
         onAddToTimeline={handleAddToTimeline}
