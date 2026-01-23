@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useRef, useCallback } from "react";
+import { ChangeEvent, useRef, useCallback, useEffect } from "react";
 import { useDrag } from "react-dnd";
 import {
   MediaItem,
@@ -11,10 +11,14 @@ import {
 
 interface MediaLibraryProps {
   mediaItems: MediaItem[];
-  selectedMediaId: string | null;
+  selectedMediaIds: Set<string>;
   onAddMedia: (media: MediaItem) => void;
   onRemoveMedia: (mediaId: string) => void;
-  onSelectMedia: (mediaId: string | null) => void;
+  onSelectMedia: (
+    mediaId: string,
+    options?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }
+  ) => void;
+  onSelectAll: () => void;
   onAddToTimeline: () => void;
 }
 
@@ -81,21 +85,36 @@ async function generateVideoThumbnail(
 function MediaThumbnail({
   media,
   isSelected,
+  selectedMediaIds,
   onSelect,
   onRemove,
 }: {
   media: MediaItem;
   isSelected: boolean;
-  onSelect: () => void;
+  selectedMediaIds: Set<string>;
+  onSelect: (e: React.MouseEvent) => void;
   onRemove: () => void;
 }) {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: DRAG_TYPES.MEDIA_THUMBNAIL,
-    item: { type: DRAG_TYPES.MEDIA_THUMBNAIL, id: media.id, mediaId: media.id },
+    // item을 함수로 만들어서 드래그 시작 시점의 최신 selectedMediaIds를 가져옴
+    item: () => {
+      return {
+        type: DRAG_TYPES.MEDIA_THUMBNAIL,
+        id: media.id,
+        mediaId: media.id,
+        // 선택된 미디어가 있으면 선택된 모든 미디어 포함
+        // 선택된 미디어가 없으면 현재 드래그한 미디어만 포함
+        selectedMediaIds:
+          selectedMediaIds.size > 0
+            ? Array.from(selectedMediaIds)
+            : undefined, // undefined면 Timeline에서 현재 미디어만 처리
+      };
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-  }));
+  }), [selectedMediaIds, media.id]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -162,14 +181,14 @@ function MediaThumbnail({
       onClick={onSelect}
       className={`relative group cursor-pointer rounded-lg overflow-hidden bg-slate-700/50 transition-all ${
         isDragging ? "opacity-50" : ""
-      } ${isSelected ? "ring-2 ring-teal-400 ring-offset-2 ring-offset-slate-800" : "hover:ring-1 hover:ring-slate-500"}`}
+      } ${isSelected ? "ring-2 ring-teal-400 ring-offset-1 ring-offset-slate-800" : "hover:ring-1 hover:ring-slate-500"}`}
     >
       {/* 썸네일 */}
       <div className="aspect-video bg-slate-800 flex items-center justify-center">
         {media.type === "audio" ? (
           <div className="flex flex-col items-center text-slate-400">
             <svg
-              className="w-8 h-8"
+              className="w-6 h-6"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -192,12 +211,12 @@ function MediaThumbnail({
       </div>
 
       {/* 오버레이 정보 */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-        <div className="flex items-center gap-1 text-white text-xs">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1.5">
+        <div className="flex items-center gap-1 text-white text-[10px]">
           {getTypeIcon()}
           <span className="truncate flex-1">{media.name}</span>
         </div>
-        <div className="text-slate-300 text-xs">
+        <div className="text-slate-300 text-[10px]">
           {formatDuration(media.duration)}
         </div>
       </div>
@@ -208,10 +227,10 @@ function MediaThumbnail({
           e.stopPropagation();
           onRemove();
         }}
-        className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500/80 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <svg
-          className="w-3 h-3 text-white"
+          className="w-2.5 h-2.5 text-white"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -230,10 +249,11 @@ function MediaThumbnail({
 
 export default function MediaLibrary({
   mediaItems,
-  selectedMediaId,
+  selectedMediaIds,
   onAddMedia,
   onRemoveMedia,
   onSelectMedia,
+  onSelectAll,
   onAddToTimeline,
 }: MediaLibraryProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -305,16 +325,45 @@ export default function MediaLibrary({
     [onAddMedia]
   );
 
+  const isAllSelected =
+    mediaItems.length > 0 && selectedMediaIds.size === mediaItems.length;
+
+  // 키보드 단축키 처리 (Ctrl+A / Cmd+A)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+        e.preventDefault();
+        if (mediaItems.length > 0) {
+          onSelectAll();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mediaItems.length, onSelectAll]);
+
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-slate-200">미디어</h2>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="px-2 py-1 text-xs bg-teal-500 hover:bg-teal-600 text-white rounded transition-colors"
-        >
-          + 추가
-        </button>
+        <div className="flex items-center gap-2">
+          {mediaItems.length > 0 && (
+            <button
+              onClick={onSelectAll}
+              className="px-2 py-1 text-xs bg-slate-600 hover:bg-slate-500 text-white rounded transition-colors"
+              title={isAllSelected ? "전체 해제 (Ctrl+A)" : "전체 선택 (Ctrl+A)"}
+            >
+              {isAllSelected ? "전체 해제" : "전체 선택"}
+            </button>
+          )}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-2 py-1 text-xs bg-teal-500 hover:bg-teal-600 text-white rounded transition-colors"
+          >
+            + 추가
+          </button>
+        </div>
       </div>
 
       <input
@@ -327,7 +376,7 @@ export default function MediaLibrary({
       />
 
       {/* 미디어 목록 */}
-      <div className="space-y-2">
+      <div className={mediaItems.length === 0 ? "" : "grid grid-cols-2 gap-2"}>
         {mediaItems.length === 0 ? (
           <div
             onClick={() => fileInputRef.current?.click()}
@@ -352,12 +401,19 @@ export default function MediaLibrary({
             </span>
           </div>
         ) : (
-          mediaItems.map((media) => (
+          mediaItems.map((media, index) => (
             <MediaThumbnail
               key={media.id}
               media={media}
-              isSelected={selectedMediaId === media.id}
-              onSelect={() => onSelectMedia(selectedMediaId === media.id ? null : media.id)}
+              isSelected={selectedMediaIds.has(media.id)}
+              selectedMediaIds={selectedMediaIds}
+              onSelect={(e) => {
+                onSelectMedia(media.id, {
+                  shiftKey: e.shiftKey,
+                  ctrlKey: e.ctrlKey,
+                  metaKey: e.metaKey,
+                });
+              }}
               onRemove={() => onRemoveMedia(media.id)}
             />
           ))
@@ -365,12 +421,12 @@ export default function MediaLibrary({
       </div>
 
       {/* 선택된 미디어가 있을 때 타임라인 추가 버튼 */}
-      {selectedMediaId && (
+      {selectedMediaIds.size > 0 && (
         <button
           onClick={onAddToTimeline}
           className="w-full mt-3 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg text-sm font-medium transition-colors"
         >
-          타임라인에 추가
+          타임라인에 추가 ({selectedMediaIds.size}개)
         </button>
       )}
 

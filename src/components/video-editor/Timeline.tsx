@@ -229,7 +229,7 @@ function TrackRow({
   timeline,
   zoom,
   selectedClipId,
-  onAddClip,
+  onAddMultipleClips,
   onSelectClip,
   onDeleteClip,
   onUpdateClip,
@@ -239,7 +239,10 @@ function TrackRow({
   timeline: TimelineState;
   zoom: number;
   selectedClipId: string | null;
-  onAddClip: (trackId: string, mediaId: string, startTime: number) => void;
+  onAddMultipleClips: (
+    trackId: string,
+    clips: Array<{ mediaId: string; startTime: number }>
+  ) => void;
   onSelectClip: (clipId: string | null) => void;
   onDeleteClip: (trackId: string, clipId: string) => void;
   onUpdateClip: (
@@ -259,26 +262,58 @@ function TrackRow({
 
         const rect = trackRef.current.getBoundingClientRect();
         const x = offset.x - rect.left;
-        const startTime = pixelsToTime(x, zoom);
+        const baseStartTime = pixelsToTime(x, zoom);
 
-        // 비디오 트랙에는 이미지/비디오만, 오디오 트랙에는 오디오만
-        const media = mediaItems.find((m) => m.id === item.mediaId);
-        if (!media) return;
+        // 선택된 모든 미디어 ID 가져오기
+        // selectedMediaIds가 있으면 선택된 모든 미디어 사용, 없으면 드래그한 미디어만
+        const mediaIdsToAdd = item.selectedMediaIds && item.selectedMediaIds.length > 0
+          ? item.selectedMediaIds
+          : item.mediaId
+          ? [item.mediaId]
+          : [];
 
-        if (track.type === "video" && media.type === "audio") {
-          return; // 비디오 트랙에 오디오 드롭 불가
+        // 기존 클립의 마지막 끝 시간 찾기
+        const existingClips = track.clips;
+        const lastClipEnd = existingClips.length > 0
+          ? Math.max(...existingClips.map(clip => clip.startTime + clip.duration))
+          : 0;
+
+        // 드롭 위치와 기존 클립의 끝 시간 중 더 큰 값 사용
+        let currentStartTime = Math.max(0, Math.max(baseStartTime, lastClipEnd));
+        const clipsToAdd: Array<{ mediaId: string; startTime: number }> = [];
+
+        // 추가할 클립들을 먼저 수집 (순차적으로 배치)
+        mediaIdsToAdd.forEach((mediaId) => {
+          const media = mediaItems.find((m) => m.id === mediaId);
+          if (!media) return;
+
+          // 비디오 트랙에는 이미지/비디오만, 오디오 트랙에는 오디오만
+          if (track.type === "video" && media.type === "audio") {
+            return; // 비디오 트랙에 오디오 드롭 불가
+          }
+          if (track.type === "audio" && media.type !== "audio") {
+            return; // 오디오 트랙에 비디오/이미지 드롭 불가
+          }
+
+          clipsToAdd.push({
+            mediaId,
+            startTime: currentStartTime,
+          });
+
+          // 다음 미디어는 현재 미디어의 끝 시간에 배치
+          currentStartTime += media.duration;
+        });
+
+        // 모든 클립을 한 번에 추가
+        if (clipsToAdd.length > 0) {
+          onAddMultipleClips(track.id, clipsToAdd);
         }
-        if (track.type === "audio" && media.type !== "audio") {
-          return; // 오디오 트랙에 비디오/이미지 드롭 불가
-        }
-
-        onAddClip(track.id, item.mediaId!, Math.max(0, startTime));
       },
       collect: (monitor) => ({
         isOver: monitor.isOver(),
       }),
     }),
-    [track, mediaItems, zoom]
+    [track, mediaItems, zoom, onAddMultipleClips]
   );
 
   const setRefs = useCallback(
@@ -360,21 +395,84 @@ export default function Timeline({
     return maxEnd;
   }, [timeline.tracks]);
 
-  // 클립 추가
-  const handleAddClip = useCallback(
-    (trackId: string, mediaId: string, startTime: number) => {
-      const media = mediaItems.find((m) => m.id === mediaId);
-      if (!media) return;
+  // 여러 클립을 한 번에 추가
+  const handleAddMultipleClips = useCallback(
+    (trackId: string, clips: Array<{ mediaId: string; startTime: number }>) => {
+      const newClips: TimelineClip[] = [];
+      let maxEndTime = totalDuration;
+      const baseTimestamp = Date.now();
 
-      const newClip: TimelineClip = {
-        id: `clip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        mediaId,
-        trackId,
-        startTime,
-        duration: media.duration,
-        trimStart: 0,
-        trimEnd: media.duration,
-      };
+      clips.forEach(({ mediaId, startTime }, index) => {
+        const media = mediaItems.find((m) => m.id === mediaId);
+        if (!media) return;
+
+        // 고유한 ID 생성 (타임스탬프 + 인덱스 + 랜덤)
+        const uniqueId = `clip-${baseTimestamp}-${index}-${Math.random().toString(36).substr(2, 9)}`;
+
+        const newClip: TimelineClip = {
+          id: uniqueId,
+          mediaId,
+          trackId,
+          startTime,
+          duration: media.duration,
+          trimStart: 0,
+          trimEnd: media.duration,
+        };
+
+        newClips.push(newClip);
+        maxEndTime = Math.max(maxEndTime, startTime + media.duration);
+      });
+
+      if (newClips.length === 0) return;
+
+      // 기존 클립과 겹치지 않도록 확인하고 조정
+      const targetTrack = timeline.tracks.find((t) => t.id === trackId);
+      if (targetTrack) {
+        // 모든 기존 클립을 시간순으로 정렬
+        const sortedExistingClips = [...targetTrack.clips].sort(
+          (a, b) => a.startTime - b.startTime
+        );
+
+        // 각 새 클립을 순차적으로 배치하면서 겹침 확인
+        newClips.forEach((newClip, index) => {
+          if (index === 0) {
+            // 첫 번째 클립은 기존 클립과 겹치는지 확인
+            const overlappingClip = sortedExistingClips.find(
+              (existingClip) =>
+                (newClip.startTime >= existingClip.startTime &&
+                  newClip.startTime < existingClip.startTime + existingClip.duration) ||
+                (existingClip.startTime >= newClip.startTime &&
+                  existingClip.startTime < newClip.startTime + newClip.duration)
+            );
+
+            if (overlappingClip) {
+              // 겹치면 기존 클립의 끝 시간에 배치
+              newClip.startTime = overlappingClip.startTime + overlappingClip.duration;
+            }
+          } else {
+            // 이후 클립들은 이전 새 클립의 끝 시간에 배치
+            const prevClip = newClips[index - 1];
+            newClip.startTime = prevClip.startTime + prevClip.duration;
+
+            // 여전히 기존 클립과 겹치는지 확인
+            const overlappingClip = sortedExistingClips.find(
+              (existingClip) =>
+                (newClip.startTime >= existingClip.startTime &&
+                  newClip.startTime < existingClip.startTime + existingClip.duration) ||
+                (existingClip.startTime >= newClip.startTime &&
+                  existingClip.startTime < newClip.startTime + newClip.duration)
+            );
+
+            if (overlappingClip) {
+              // 겹치면 기존 클립의 끝 시간에 배치
+              newClip.startTime = overlappingClip.startTime + overlappingClip.duration;
+            }
+          }
+        });
+
+        // 최종 정렬
+        newClips.sort((a, b) => a.startTime - b.startTime);
+      }
 
       onTimelineUpdate({
         ...timeline,
@@ -382,16 +480,13 @@ export default function Timeline({
           track.id === trackId
             ? {
                 ...track,
-                clips: [...track.clips, newClip].sort(
+                clips: [...track.clips, ...newClips].sort(
                   (a, b) => a.startTime - b.startTime
                 ),
               }
             : track
         ),
-        totalDuration: Math.max(
-          totalDuration,
-          startTime + media.duration
-        ),
+        totalDuration: maxEndTime,
       });
     },
     [mediaItems, timeline, totalDuration, onTimelineUpdate]
@@ -557,7 +652,7 @@ export default function Timeline({
               timeline={timeline}
               zoom={timeline.zoom}
               selectedClipId={selection.selectedClipId}
-              onAddClip={handleAddClip}
+              onAddMultipleClips={handleAddMultipleClips}
               onSelectClip={handleSelectClip}
               onDeleteClip={handleDeleteClip}
               onUpdateClip={handleUpdateClip}

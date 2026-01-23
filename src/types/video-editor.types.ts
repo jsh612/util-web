@@ -77,6 +77,7 @@ export interface DragItem {
   id: string;
   mediaId?: string;
   trackId?: string;
+  selectedMediaIds?: string[]; // 선택된 모든 미디어 ID (드래그 앤 드롭 시 사용)
 }
 
 // 드래그 타입 상수

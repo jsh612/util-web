@@ -63,8 +63,9 @@ export default function VideoEditorPage() {
     selectedTrackId: null,
   });
 
-  // 선택된 미디어 (라이브러리에서 선택)
-  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
+  // 선택된 미디어 (라이브러리에서 선택) - 복수 선택 지원
+  const [selectedMediaIds, setSelectedMediaIds] = useState<Set<string>>(new Set());
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
 
   // 사이드바 토글 상태
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
@@ -87,52 +88,150 @@ export default function VideoEditorPage() {
       })),
     }));
     // 선택된 미디어가 삭제되면 선택 해제
-    setSelectedMediaId((prev) => (prev === mediaId ? null : prev));
+    setSelectedMediaIds((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(mediaId);
+      return newSet;
+    });
   }, []);
 
-  // 미디어 선택 핸들러
-  const handleSelectMedia = useCallback((mediaId: string | null) => {
-    setSelectedMediaId(mediaId);
-  }, []);
+  // 미디어 선택 핸들러 (복수 선택 지원)
+  const handleSelectMedia = useCallback(
+    (
+      mediaId: string,
+      options?: {
+        shiftKey?: boolean;
+        ctrlKey?: boolean;
+        metaKey?: boolean;
+      }
+    ) => {
+      const { shiftKey = false, ctrlKey = false, metaKey = false } = options || {};
 
-  // 선택된 미디어를 타임라인에 추가
+      if (shiftKey && lastSelectedIndex !== null) {
+        // Shift 키: 범위 선택
+        const currentIndex = mediaItems.findIndex((m) => m.id === mediaId);
+        const start = Math.min(lastSelectedIndex, currentIndex);
+        const end = Math.max(lastSelectedIndex, currentIndex);
+        const rangeIds = mediaItems.slice(start, end + 1).map((m) => m.id);
+
+        setSelectedMediaIds((prev) => {
+          const newSet = new Set(prev);
+          rangeIds.forEach((id) => newSet.add(id));
+          return newSet;
+        });
+        setLastSelectedIndex(currentIndex);
+      } else if (ctrlKey || metaKey) {
+        // Ctrl/Cmd 키: 개별 선택/해제
+        setSelectedMediaIds((prev) => {
+          const newSet = new Set(prev);
+          if (newSet.has(mediaId)) {
+            newSet.delete(mediaId);
+          } else {
+            newSet.add(mediaId);
+          }
+          return newSet;
+        });
+        const currentIndex = mediaItems.findIndex((m) => m.id === mediaId);
+        setLastSelectedIndex(currentIndex);
+      } else {
+        // 단일 선택
+        setSelectedMediaIds(new Set([mediaId]));
+        const currentIndex = mediaItems.findIndex((m) => m.id === mediaId);
+        setLastSelectedIndex(currentIndex);
+      }
+    },
+    [mediaItems, lastSelectedIndex]
+  );
+
+  // 전체 선택/해제 핸들러
+  const handleSelectAll = useCallback(() => {
+    if (selectedMediaIds.size === mediaItems.length) {
+      // 모두 선택되어 있으면 모두 해제
+      setSelectedMediaIds(new Set());
+      setLastSelectedIndex(null);
+    } else {
+      // 모두 선택
+      const allIds = new Set(mediaItems.map((m) => m.id));
+      setSelectedMediaIds(allIds);
+      setLastSelectedIndex(mediaItems.length - 1);
+    }
+  }, [mediaItems, selectedMediaIds.size]);
+
+  // 선택된 미디어를 타임라인에 추가 (복수 선택 지원)
   const handleAddToTimeline = useCallback(() => {
-    if (!selectedMediaId) return;
+    if (selectedMediaIds.size === 0) return;
 
-    const media = mediaItems.find((m) => m.id === selectedMediaId);
-    if (!media) return;
+    const selectedMedia = mediaItems.filter((m) => selectedMediaIds.has(m.id));
+    if (selectedMedia.length === 0) return;
 
-    // 적절한 트랙 찾기 (오디오는 오디오 트랙, 나머지는 비디오 트랙)
-    const targetTrackId = media.type === "audio" ? "audio-1" : "video-1";
-    const targetTrack = timeline.tracks.find((t) => t.id === targetTrackId);
-    if (!targetTrack) return;
-
-    // 트랙의 마지막 클립 이후에 추가
-    const lastClipEnd = targetTrack.clips.reduce(
-      (max, clip) => Math.max(max, clip.startTime + clip.duration),
-      0
-    );
-
-    const newClip: TimelineClip = {
-      id: `clip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      mediaId: selectedMediaId,
-      trackId: targetTrackId,
-      startTime: lastClipEnd,
-      duration: media.duration,
-      trimStart: 0,
-      trimEnd: media.duration,
+    // 트랙별로 미디어 그룹화
+    const mediaByTrack: Record<string, MediaItem[]> = {
+      "video-1": [],
+      "audio-1": [],
     };
 
+    selectedMedia.forEach((media) => {
+      const targetTrackId = media.type === "audio" ? "audio-1" : "video-1";
+      mediaByTrack[targetTrackId].push(media);
+    });
+
+    // 각 트랙별로 클립 생성 및 배치
+    const newClipsByTrack: Record<string, TimelineClip[]> = {};
+    let maxEndTime = timeline.totalDuration;
+    const baseTimestamp = Date.now();
+
+    Object.entries(mediaByTrack).forEach(([trackId, medias]) => {
+      if (medias.length === 0) return;
+
+      const targetTrack = timeline.tracks.find((t) => t.id === trackId);
+      if (!targetTrack) return;
+
+      // 기존 클립의 마지막 끝 시간 찾기
+      const lastClipEnd = targetTrack.clips.reduce(
+        (max, clip) => Math.max(max, clip.startTime + clip.duration),
+        0
+      );
+
+      let currentStartTime = lastClipEnd;
+      const newClips: TimelineClip[] = [];
+
+      // 각 미디어를 순차적으로 배치
+      medias.forEach((media, index) => {
+        const newClip: TimelineClip = {
+          id: `clip-${baseTimestamp}-${trackId}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+          mediaId: media.id,
+          trackId,
+          startTime: currentStartTime,
+          duration: media.duration,
+          trimStart: 0,
+          trimEnd: media.duration,
+        };
+
+        newClips.push(newClip);
+        currentStartTime += media.duration;
+        maxEndTime = Math.max(maxEndTime, currentStartTime);
+      });
+
+      newClipsByTrack[trackId] = newClips;
+    });
+
+    // 모든 클립을 한 번에 타임라인에 추가
     setTimeline((prev) => ({
       ...prev,
-      tracks: prev.tracks.map((track) =>
-        track.id === targetTrackId
-          ? { ...track, clips: [...track.clips, newClip] }
-          : track
-      ),
-      totalDuration: Math.max(prev.totalDuration, lastClipEnd + media.duration),
+      tracks: prev.tracks.map((track) => {
+        const newClips = newClipsByTrack[track.id];
+        if (!newClips || newClips.length === 0) return track;
+
+        return {
+          ...track,
+          clips: [...track.clips, ...newClips].sort(
+            (a, b) => a.startTime - b.startTime
+          ),
+        };
+      }),
+      totalDuration: maxEndTime,
     }));
-  }, [selectedMediaId, mediaItems, timeline.tracks]);
+  }, [selectedMediaIds, mediaItems, timeline.tracks, timeline.totalDuration]);
 
   // 타임라인 업데이트
   const handleTimelineUpdate = useCallback((newTimeline: TimelineState) => {
@@ -226,10 +325,11 @@ export default function VideoEditorPage() {
             >
               <MediaLibrary
                 mediaItems={mediaItems}
-                selectedMediaId={selectedMediaId}
+                selectedMediaIds={selectedMediaIds}
                 onAddMedia={handleAddMedia}
                 onRemoveMedia={handleRemoveMedia}
                 onSelectMedia={handleSelectMedia}
+                onSelectAll={handleSelectAll}
                 onAddToTimeline={handleAddToTimeline}
               />
             </div>
