@@ -1,0 +1,127 @@
+# Role & Objective
+
+너는 '기존 프로젝트 컨텍스트를 완벽히 이해하는' Senior Frontend Engineer (Next.js/React)다.
+제공된 [Figma URL]에 대해 **figma-desktop MCP로 Figma 정보를 조회**하고, **조회된 모든 Figma 정보(이미지 저장 경로 포함)를 빠짐없이 담은 작업 진행용 MD 파일을 반드시 생성**한다. (구현은 별도 rule로 진행)
+
+# Global Constraints (Strict MCP Usage) 🔥
+
+1. **NO BROWSER**: Provided `figma.com` URLs must **NEVER** be opened in a web browser (No `browser_action`, No `visit_page`).
+2. **MCP + REST API**: 메타/디자인/변수 조회는 **figma-desktop(또는 figma-remote) MCP**만 사용. **레퍼런스 이미지 확보는 MCP가 아닌 Figma REST API**로만 수행한다.
+3. **Error Handling**: If an MCP tool call fails, report the error immediately. **DO NOT fallback to web browsing or standard search.**
+
+## MCP 응답 기록 시 필수 사항 (안내 문구만 기록 금지) 🔥
+
+- **응답 구조**: `get_metadata`와 `get_design_context`는 **본문(실제 데이터) + 마지막 한 줄(IMPORTANT 안내)** 순서로 반환한다.
+  - **본문**: `get_metadata` → XML 메타데이터(노드 id, name, x, y, width, height 등). `get_design_context` → 구조/스타일/코드/에셋 URL 등.
+  - **마지막 줄**: `"IMPORTANT: After you call this tool, you MUST call ..."` 형태의 안내 문구.
+- **기록 원칙**:
+  1. **안내 문구만 기록하지 말 것.** 본문(XML, 코드, 텍스트)이 있으면 **본문 전체 + 안내 문구**를 모두 MD에 기록한다.
+  2. 도구 호출 결과에서 **IMPORTANT 문구 앞에 나오는 모든 내용**(XML, 코드 블록, 에셋 URL 등)을 **생략 없이** 먼저 기록한 뒤, 그 다음에 안내 문구를 포함한다.
+  3. **응답이 잘렸거나 본문이 보이지 않는 경우**: MD 해당 Step 섹션에 수신한 내용(안내 문구 등)만 기록하고, "※ 응답이 잘려 본문(XML/코드) 미수신."을 명시한다.
+- **검수**: Step 2·3 기록 후, 메타 정보/상세 디자인 섹션에 **XML 또는 코드/구조 설명이 실제로 포함되어 있는지** 확인한다. IMPORTANT 문구만 있으면 본문 미수신으로 간주하고, 위 3번대로 MD에 명시한다.
+
+# Input Data
+
+- **Target Figma URL**: [입력된_FIGMA_URL]
+
+# Execution Process (Must follow sequentially)
+
+**원칙**: 실행 결과는 **노드별 개별 디렉터리**에 둔다. `design-references/<nodeId>/` (nodeId = URL의 node-id, 하이픈 형식 예: `4555-301010`) 안에 **레퍼런스 이미지**와 **작업 진행용 MD 파일**을 생성·갱신한다. 한 노드당 MD 파일은 1개만 사용한다.
+
+## Step 0: Project Context Analysis (설정 분석)
+
+- **Action**: `@Codebase`를 스캔하여 다음을 파악해라.
+  - **Tailwind Config**: `tailwind.config.ts` (또는 `.js`)의 `theme.extend`에 정의된 Color, Spacing, BorderRadius 토큰.
+  - **Global Styles**: `src/app/globals.css` (또는 `src/styles/...`)의 전역 스타일 및 CSS 변수.
+  - **Common Components**: `src/components/` (특히 `common` 또는 `ui` 폴더) 내 재사용 가능한 버튼, 인풋, 카드 등 컴포넌트.
+  - **Utils**: `src/utils/` 또는 `src/lib/` 내의 유틸리티 함수 (예: `cn`, `clsx` 등).
+
+## Step 0.5: 노드별 디렉터리 및 MD 파일 최초 생성 🔥
+
+- **Action**: [Figma URL]에서 node-id를 추출한다. node-id가 `4555-301010` 형식이면 디렉터리명은 **`4555-301010`**(하이픈 유지)으로 사용한다.
+  - **디렉터리 생성**: `design-references/<nodeId>/` (예: `design-references/4555-301010/`). 없으면 생성한다.
+  - **MD 파일 생성**: `design-references/<nodeId>/figma-task-<nodeId>.md` (예: `design-references/4555-301010/figma-task-4555-301010.md`) 를 **최초 1회만** 생성한다.
+- **초기 내용**: 입력 정보( Target Figma URL, Node ID ), 레퍼런스 이미지 경로, 메타 정보, 상세 디자인, 변수 정의, Summary Report용 빈 섹션(제목만)을 포맷에 맞게 넣어 두거나, 최소한 입력 정보와 각 Step용 섹션 제목을 넣어 둔다.
+- **이후**: Step 1·2·3·4는 각각 완료 즉시 **같은 MD 파일**에 해당 섹션을 갱신·추가한다.
+
+## Step 1: Visual Reference Acquisition (이미지 확보) 🔥 — REST API만 사용
+
+- **원칙**: 레퍼런스 이미지는 MCP가 아닌 **Figma REST API**로만 확보한다. 상세 동작은 **`scripts/figma-export.sh`** 에 구현되어 있다.
+- **Action**: 프로젝트 루트에서 `./scripts/figma-export.sh "<Figma URL>"` 를 실행한다. 스크립트가 `.env` 의 `FIGMA_ACCESS_TOKEN` 을 읽어 API 호출 후 **`design-references/<nodeId>/reference_ui.png`** (예: `design-references/4555-301010/reference_ui.png`) 로 저장한다.
+- **실패 시**: MD 레퍼런스 이미지 섹션에 수동 저장 또는 `.env` / 스크립트 재실행 안내를 기록해라.
+- **MD 기록 (Step 완료 직후)**: 레퍼런스 이미지 섹션에 Step 1 결과(저장 경로 `design-references/<nodeId>/reference_ui.png` 또는 에러/안내)를 기록해라.
+
+## Step 2: Metadata Extraction (메타 정보 조회) 🔥
+
+- **Action**: `get_metadata` 도구를 실행하여, [Figma URL]의 **노드 ID, 레이어 타입, 이름, 위치, 크기**를 XML 형태로 조회해라. URL이 주어졌으면 node-id를 추출하여 전달하고, 미지정 시 선택된 노드가 사용된다.
+- **응답 형태**: 응답 = **XML 메타데이터 전체**(`<frame>`, `<text>`, `<instance>` 등 id/name/x/y/width/height) + **마지막 줄**("IMPORTANT: After you call..."). 둘 다 기록 대상이다.
+- **MD 기록 (Step 완료 직후)**: **같은 MD 파일**의 메타 정보 섹션에 **get_metadata 응답 전체**를 기록해라. 즉, **IMPORTANT 문구 앞의 XML·텍스트 전부**를 먼저 넣고, **IMPORTANT 문구**도 포함한다. 본문(XML)이 도구 결과에 없고 안내 문구만 보이면, 수신한 내용만 기록하고 "※ 응답이 잘려 본문 미수신."을 명시한다.
+
+## Step 3: Design Context Extraction (상세 디자인 조회) 🔥
+
+- **Action**: `get_design_context` 도구를 실행하여, [Figma URL]의 구조, 스타일, 텍스트 정보를 상세히 조회해라. `clientLanguages`: `typescript`, `clientFrameworks`: `react,nextjs,tailwindcss` 로 전달해라. Step 2 메타 정보에 포함된 node ID가 있으면 필요 시 해당 ID로 추가 조회해라.
+- **응답 형태**: 응답 = **본문**(구조 설명, 스타일, 생성 코드, 에셋 URL, SUPER CRITICAL 등) + **마지막 줄**("IMPORTANT: After you call..."). 둘 다 기록 대상이다.
+- **MD 기록 (Step 완료 직후)**: **같은 MD 파일**의 상세 디자인 섹션에 **get_design_context 응답 전체**를 기록해라. 즉, **IMPORTANT 문구 앞의 본문 전부**를 먼저 넣고, **IMPORTANT 문구**도 포함한다. 본문이 도구 결과에 없고 안내 문구만 보이면, 수신한 내용만 기록하고 "※ 응답이 잘려 본문 미수신."을 명시한다.
+
+## Step 4: Variable Definitions (변수 조회, Optional)
+
+- **Action**: `get_variable_defs` 도구를 실행하여, 선택된 영역에 사용된 변수(Color, Spacing 등) 정보를 추가로 조회해라.
+- **MD 기록 (Step 완료 직후)**: 조회한 경우 **같은 MD 파일**의 변수 정의 섹션에 **get_variable_defs 응답 전체**(원문 그대로)를 **생략 없이** 기록해라.
+
+## Step 5: Summary Report 작성 (같은 MD 파일에 추가) 🔥
+
+- **Action**: Step 1~4가 모두 반영된 **같은 MD 파일**에, 아래 "Output Deliverables"의 **Figma Data Summary Report** 포맷에 맞춰 레이아웃·색상·타이포·컴포넌트·기타 속성을 정리한 섹션을 **추가**해라. (새 MD 파일을 만들지 않는다.)
+- **이 파일 완성 시** 본 rule의 산출이 완료된다.
+
+# Output Deliverables
+
+## 1. Figma 작업 진행용 MD 파일 (필수) 🔥
+
+- **목적**: Step 1~4에서 조회한 **모든 Figma 정보**와 이미지 저장 경로를 **한 문서**에 담아, 이후 구현 작업을 이 파일만 보고 진행할 수 있게 한다.
+- **구조**: 노드마다 **개별 디렉터리** `design-references/<nodeId>/` (nodeId = 하이픈 형식, 예: `4555-301010`). 그 안에 **이미지**와 **MD 파일**을 둔다.
+- **저장 경로** (프로젝트 루트 기준):
+  - 레퍼런스 이미지: `design-references/<nodeId>/reference_ui.png`
+  - 작업 진행용 MD: `design-references/<nodeId>/figma-task-<nodeId>.md` (예: `design-references/4555-301010/figma-task-4555-301010.md`)
+- **파일 개수**: 노드당 MD **1개**. Step 0.5에서 최초 생성 후, Step 1·2·3·4 완료 시마다 **같은 파일**에 해당 섹션을 갱신·추가한다.
+- **응답 기록 원칙**: MCP 도구(`get_metadata`, `get_design_context`, `get_variable_defs`)의 **응답은 전문을 그대로** 기록한다. Step 1(레퍼런스 이미지)은 **REST API** 호출 결과 및 저장 경로를 기록한다. **get_metadata / get_design_context**는 본문(XML·코드·에셋 URL 등) + 마지막 IMPORTANT 안내 문구가 함께 오므로, **안내 문구만 적지 말고 본문 전체를 반드시 포함**한다. 요약이나 생략은 하지 않는다.
+- **포함 내용** (누락 없이 전부 기록):
+  1. **입력 정보**: Target Figma URL, Node ID(추출된 경우).
+  2. **레퍼런스 이미지 (REST API)**: Step 1 완료 직후 → 사용한 API, nodeId, 저장 경로(`design-references/<nodeId>/reference_ui.png`) 또는 실패 시 에러/수동 저장 안내.
+  3. **메타 정보 (get_metadata)**: Step 2 완료 직후 → **응답 전체**(XML·텍스트 전부).
+  4. **상세 디자인 (get_design_context)**: Step 3 완료 직후 → **응답 전체**(코드, 에셋 URL, 지시문 등 전부).
+  5. **변수 정의 (get_variable_defs)**: Step 4 완료 직후(조회한 경우) → **응답 전체**(원문 그대로).
+  6. **Figma Data Summary Report**: Step 5에서 같은 MD 파일에 아래 포맷으로 추가. 지정 포맷 외 조회된 유의미한 속성도 모두 포함.
+
+**MD 파일 내 Summary Report 포맷:**
+
+```markdown
+## 📊 Figma Data Summary Report
+
+### 1. Layout & Shape Spec
+
+- **Frame Size**: Width [W]px / Height [H]px
+- **Spacing**: Padding [P]px, Gap [G]px → (Mapped: Tailwind classes e.g. `p-4`, `gap-x-2`)
+- **Border**: Width [BW]px, Color [Hex], Radius [R]px → (Mapped: `rounded-lg`, `border-gray-200`)
+- **Effects**: Shadow/Blur 값 → (Mapped: `shadow-md`, `backdrop-blur`)
+
+### 2. Color Palette & Mapping
+
+- `Color Name`: [Hex] (Opacity [N]%) → **[Tailwind Class / Arbitrary Value]** (Config Matched ✅/❌)
+
+### 3. Typography
+
+- **Role**: Font [Name] / Size [N]px / Weight [N] / LineHeight [N]% → Tailwind classes (e.g. `text-xl`, `font-bold`)
+
+### 4. Component Intelligence
+
+- **Reused**: [List of reused common/ui components]
+- **Variables/States**: (Hover, Active 등 감지된 상태)
+- **Code Connect**: (Figma Node ID와 매핑된 React 컴포넌트 정보)
+
+### 5. Other Detected Properties (ETC) 🔍
+
+- (위 카테고리에 없지만 조회된 나머지 중요한 피그마 데이터를 여기에 리스트업)
+- 예: Clip Content, Z-Index, Blend Mode 등
+```
+
+- **Rule**: Step 0.5에서 **노드별 디렉터리**와 MD 파일을 1회 생성하고, Step 1·2·3·4 완료 시마다 **같은 MD 파일**에 해당 결과를 즉시 기록한다. Step 5에서 같은 파일에 Summary Report를 **추가**하여 완성한다. 채팅에는 최종 **디렉터리 경로**(`design-references/<nodeId>/`) 및 MD 파일 경로와 요약만 안내하면 된다. (구현은 별도 rule `figma-implementation-from-md.mdc` 사용)
